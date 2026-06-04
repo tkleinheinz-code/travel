@@ -528,9 +528,12 @@ function renderEvFields(){
       <div class="form-g"><label>${timeLabel}</label><input type="time" id="f-etime" value="${curTime}"></div>
       <div class="form-g"><label>Cost ($)</label><input type="number" id="f-ecost" placeholder="0" value="${curCost}"></div>
       <div class="form-g full"><label>${descLabel}</label><input type="text" id="f-edesc" placeholder="${descPlaceholder}" value="${curDesc}"></div>
-      <div class="form-g full"><label>Notes / confirmation #</label><input type="text" id="f-enote" placeholder="Conf: XXXXX · Section 203 Row 5" value="${curNote}"></div>
+      <div class="form-g full"><label>${t==='hotel'?'Notes':'Notes / confirmation #'}</label><input type="text" id="f-enote" placeholder="${t==='hotel'?'Special requests, parking, etc.':'Conf: XXXXX · Section 203 Row 5'}" value="${curNote}"></div>
     </div>`;
   wrap.innerHTML=driveFirst?(driveBlock+mainBlock):mainBlock+(t==='drive'?driveBlock:'')+flightBlock+hotelBlock;
+  // Attach phone formatter after DOM update
+  const phoneEl=document.getElementById('f-hphone');
+  if(phoneEl){phoneEl.addEventListener('input',formatPhone);}
 }
 
 function openModal(){
@@ -587,6 +590,14 @@ function saveModal(){
   closeModal();renderAll();save();if($('pane-hotels').classList.contains('on'))renderHotels();
 }
 
+
+function formatPhone(e){
+  let v=e.target.value.replace(/\D/g,'').substring(0,10);
+  if(v.length>6) v='('+v.substring(0,3)+') '+v.substring(3,6)+'-'+v.substring(6);
+  else if(v.length>3) v='('+v.substring(0,3)+') '+v.substring(3);
+  else if(v.length) v='('+v;
+  e.target.value=v;
+}
 
 function renderHotels(){
   const el=$('hotels-list');
