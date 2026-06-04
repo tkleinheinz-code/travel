@@ -458,30 +458,20 @@ function openEvModal(di,ei){
   const ev=ei!=null?S.days[di].events[ei]:{};
   S._selType=ev.type||'other';
   const dr=ev.drive||{};
+  // Seed state so renderEvFields has values on first render
+  S._evDesc=ev.desc||''; S._evNote=ev.note||'';
+  S._evTime=ev.time||''; S._evCost=ev.cost!=null?String(ev.cost):'';
+  S._evDstart=dr.start||''; S._evDend=dr.end||'';
+  S._evDmiles=dr.miles!=null?String(dr.miles):''; S._evDtime=dr.travelTime||'';
   $('modal-title').textContent=ei!=null?'Edit event':'Add event';
   const types=['baseball','flight','drive','hotel','food','sightseeing','other'];
   $('modal-body').innerHTML=`
     <div class="form-g"><label>Event type</label>
       <div class="type-grid">${types.map(t=>`<button type="button" class="type-opt${S._selType===t?' sel-'+t:''}" id="topt-${t}" onclick="selType('${t}')">${TL[t]}</button>`).join('')}</div>
     </div>
-    <div class="form-row">
-      <div class="form-g"><label>Time</label><input type="time" id="f-etime" value="${ev.time||''}"></div>
-      <div class="form-g"><label>Cost ($)</label><input type="number" id="f-ecost" placeholder="0" value="${ev.cost||''}"></div>
-      <div class="form-g full"><label>Description</label><input type="text" id="f-edesc" placeholder="Yankees vs Red Sox · Yankee Stadium" value="${esc(ev.desc||'')}"></div>
-      <div class="form-g full"><label>Notes / confirmation #</label><input type="text" id="f-enote" placeholder="Conf: XXXXX · Section 203 Row 5" value="${esc(ev.note||'')}"></div>
-    </div>
-    <div id="drive-fields" style="display:none">
-      <div style="border-top:.5px solid var(--border);margin:4px 0 12px"></div>
-      <div class="sub-lbl" style="margin-bottom:10px">Drive details</div>
-      <div class="form-row">
-        <div class="form-g"><label>Start city</label><input type="text" id="f-dstart" placeholder="New York, NY" value="${esc(dr.start||'')}"></div>
-        <div class="form-g"><label>End city</label><input type="text" id="f-dend" placeholder="Philadelphia, PA" value="${esc(dr.end||'')}"></div>
-        <div class="form-g"><label>Miles</label><input type="number" id="f-dmiles" placeholder="114" value="${dr.miles||''}"></div>
-        <div class="form-g"><label>Travel time</label><input type="text" id="f-dtime" placeholder="2h 00m" value="${esc(dr.travelTime||'')}"></div>
-      </div>
-    </div>`;
+    <div id="ev-dynamic-fields"></div>`;
   openModal();
-  toggleDriveFields();
+  renderEvFields();
 }
 
 function selType(t){
@@ -490,12 +480,44 @@ function selType(t){
     b.className='type-opt';
     if(b.id==='topt-'+t)b.className='type-opt sel-'+t;
   });
-  toggleDriveFields();
+  renderEvFields();
 }
 
-function toggleDriveFields(){
-  const el=document.getElementById('drive-fields');
-  if(el) el.style.display=S._selType==='drive'?'block':'none';
+function renderEvFields(){
+  const wrap=document.getElementById('ev-dynamic-fields');
+  if(!wrap)return;
+  const t=S._selType;
+  // Preserve existing values if fields already rendered
+  const curDesc=document.getElementById('f-edesc')?.value||S._evDesc||'';
+  const curNote=document.getElementById('f-enote')?.value||S._evNote||'';
+  const curTime=document.getElementById('f-etime')?.value||S._evTime||'';
+  const curCost=document.getElementById('f-ecost')?.value||S._evCost||'';
+  const curDstart=document.getElementById('f-dstart')?.value||S._evDstart||'';
+  const curDend=document.getElementById('f-dend')?.value||S._evDend||'';
+  const curDmiles=document.getElementById('f-dmiles')?.value||S._evDmiles||'';
+  const curDtime=document.getElementById('f-dtime')?.value||S._evDtime||'';
+  // Labels per type
+  const timeLabel=t==='baseball'?'Game time':'Time';
+  const descLabel=t==='baseball'?'Teams playing':t==='hotel'?'Hotel name':'Description';
+  const descPlaceholder=t==='baseball'?'Yankees vs Red Sox · Yankee Stadium':t==='hotel'?'Marriott Downtown':'Description';
+  const driveFirst=t==='drive';
+  const driveBlock=`
+    <div style="border-top:.5px solid var(--border);margin:4px 0 12px"></div>
+    <div class="sub-lbl" style="margin-bottom:10px">Drive details</div>
+    <div class="form-row">
+      <div class="form-g"><label>Start city</label><input type="text" id="f-dstart" placeholder="New York, NY" value="${curDstart}"></div>
+      <div class="form-g"><label>End city</label><input type="text" id="f-dend" placeholder="Philadelphia, PA" value="${curDend}"></div>
+      <div class="form-g"><label>Miles</label><input type="number" id="f-dmiles" placeholder="114" value="${curDmiles}"></div>
+      <div class="form-g"><label>Travel time</label><input type="text" id="f-dtime" placeholder="2h 00m" value="${curDtime}"></div>
+    </div>`;
+  const mainBlock=`
+    <div class="form-row">
+      <div class="form-g"><label>${timeLabel}</label><input type="time" id="f-etime" value="${curTime}"></div>
+      <div class="form-g"><label>Cost ($)</label><input type="number" id="f-ecost" placeholder="0" value="${curCost}"></div>
+      <div class="form-g full"><label>${descLabel}</label><input type="text" id="f-edesc" placeholder="${descPlaceholder}" value="${curDesc}"></div>
+      <div class="form-g full"><label>Notes / confirmation #</label><input type="text" id="f-enote" placeholder="Conf: XXXXX · Section 203 Row 5" value="${curNote}"></div>
+    </div>`;
+  wrap.innerHTML=driveFirst?(driveBlock+mainBlock):mainBlock+(t==='drive'?driveBlock:'');
 }
 
 function openModal(){
