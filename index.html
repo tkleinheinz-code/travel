@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Baseball Road Trip Planner</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#1a4731;--green-mid:#2d6a4f;--green-light:#d8f3dc;--green-dark:#0f2e1f;
+  --amber:#e8a020;--amber-light:#fef3e2;
+  --red:#c0392b;--red-light:#fee2e2;
+  --blue-light:#dbeafe;--blue:#1e40af;
+  --purple-light:#ede9fe;--purple:#5b21b6;
+  --teal-light:#d1fae5;--teal:#065f46;
+  --font-d:'Bebas Neue',sans-serif;
+  --font-m:'DM Mono',monospace;
+  --font-b:'DM Sans',sans-serif;
+  --bg:#f5f4f1;--bg2:#fff;--bg3:#f0efe9;
+  --text:#1a1a1a;--text2:#6b7280;--text3:#9ca3af;
+  --border:rgba(0,0,0,.1);--border2:rgba(0,0,0,.18);
+  --radius:8px;--radius-lg:12px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1a1a1a;--bg2:#242424;--bg3:#1e1e1e;
+    --text:#f0f0f0;--text2:#9ca3af;--text3:#6b7280;
+    --border:rgba(255,255,255,.1);--border2:rgba(255,255,255,.18);
+  }
+}
+body{font-family:var(--font-b);background:var(--bg);min-height:100vh;color:var(--text)}
+
+.hdr{background:var(--green);color:#fff;padding:1.25rem 1.5rem 2.5rem;position:relative}
+.hdr-inner{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem}
+.eyebrow{font-family:var(--font-m);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:4px}
+.trip-name{font-family:var(--font-d);font-size:2.2rem;color:#fff;line-height:1;cursor:pointer}
+.trip-name:hover{opacity:.85}
+.trip-dates{font-family:var(--font-m);font-size:12px;color:rgba(255,255,255,.65);margin-top:5px}
+.hdr-stats{display:flex;gap:1.5rem;flex-shrink:0}
+.stat{text-align:center}
+.stat-n{font-family:var(--font-d);font-size:1.9rem;color:var(--amber);line-height:1}
+.stat-l{font-family:var(--font-m);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-top:2px}
+.hdr-curve{position:absolute;bottom:-1px;left:0;right:0;height:28px;background:var(--bg);border-radius:50% 50% 0 0/100% 100% 0 0}
+
+.tabs{display:flex;background:var(--bg2);border-bottom:.5px solid var(--border);padding:0 1.5rem;overflow-x:auto}
+.tab{font-family:var(--font-m);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:11px 16px;border:none;background:none;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.tab i{font-size:15px}
+.tab.on{color:var(--green);border-bottom-color:var(--green);font-weight:500}
+.tab:hover:not(.on){color:var(--text)}
+
+.pane{padding:1.25rem 1.5rem;display:none;max-width:860px;margin:0 auto}
+.pane.on{display:block}
+
+.sec-hd{font-family:var(--font-d);font-size:1.4rem;color:var(--text);letter-spacing:.02em;margin-bottom:1rem}
+.row-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.row-hd .sec-hd{margin-bottom:0}
+
+.card{background:var(--bg2);border:.5px solid var(--border);border-radius:var(--radius-lg)}
+.card+.card{margin-top:10px}
+
+.day-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg3);border-radius:var(--radius-lg) var(--radius-lg) 0 0;cursor:pointer;border-bottom:.5px solid var(--border)}
+.day-hdr.closed{border-radius:var(--radius-lg);border-bottom:none}
+.day-num{font-family:var(--font-d);font-size:1.6rem;color:var(--green);min-width:30px;line-height:1}
+.day-info{flex:1;min-width:0}
+.day-date-lbl{font-weight:500;font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.day-city-lbl{font-family:var(--font-m);font-size:11px;color:var(--text2);margin-top:1px}
+.day-badges{display:flex;flex-wrap:wrap;gap:5px;flex:2;min-width:0}
+.chev{font-size:18px;color:var(--text2);transition:transform .2s;flex-shrink:0}
+.chev.open{transform:rotate(180deg)}
+
+.day-body{padding:14px;display:flex;flex-direction:column;gap:12px}
+.sub-lbl{font-family:var(--font-m);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);margin-bottom:6px}
+
+.ev-list{display:flex;flex-direction:column;gap:5px}
+.ev{display:flex;align-items:flex-start;gap:9px;padding:8px 10px;border:.5px solid var(--border);border-radius:8px;background:var(--bg3)}
+.ev-icon{font-size:17px;margin-top:1px;flex-shrink:0}
+.ev-body{flex:1;min-width:0}
+.ev-time{font-family:var(--font-m);font-size:10px;color:var(--text2)}
+.ev-desc{font-size:13px;font-weight:500;color:var(--text);word-break:break-word}
+.ev-note{font-size:12px;color:var(--text2);margin-top:2px;word-break:break-word}
+.ev-cost{font-family:var(--font-m);font-size:12px;color:var(--green-mid);font-weight:500;white-space:nowrap;flex-shrink:0}
+.ev-actions{display:flex;gap:4px;flex-shrink:0}
+
+.ic-baseball{color:var(--red)}.ic-flight{color:#185FA5}.ic-drive{color:#854F0B}
+.ic-hotel{color:var(--green-mid)}.ic-food{color:#534AB7}.ic-sightseeing{color:#0F6E56}.ic-other{color:var(--text2)}
+
+.badge{display:inline-flex;align-items:center;font-family:var(--font-m);font-size:10px;letter-spacing:.04em;padding:2px 7px;border-radius:4px;white-space:nowrap}
+.b-baseball{background:var(--red-light);color:var(--red)}
+.b-flight{background:var(--blue-light);color:var(--blue)}
+.b-drive{background:var(--amber-light);color:#78350f}
+.b-hotel{background:var(--green-light);color:var(--green)}
+.b-food{background:var(--purple-light);color:var(--purple)}
+.b-sightseeing{background:var(--teal-light);color:var(--teal)}
+.b-other{background:var(--bg3);color:var(--text2)}
+
+.lodge-block{padding:9px 11px;border:.5px solid var(--border);border-radius:8px;background:var(--bg3)}
+.lodge-name{font-weight:500;font-size:13px;color:var(--text)}
+.lodge-sub{font-family:var(--font-m);font-size:11px;color:var(--text2);margin-top:2px}
+.lodge-cost{font-family:var(--font-m);font-size:12px;color:var(--green-mid);margin-top:3px}
+.notes-block{padding:9px 11px;border:.5px solid var(--border);border-radius:8px;background:var(--bg3);font-size:13px;color:var(--text2);font-style:italic}
+
+.btn-ghost{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-m);font-size:11px;letter-spacing:.05em;text-transform:uppercase;padding:7px 12px;border:.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);cursor:pointer;color:var(--text);transition:background .12s}
+.btn-ghost:hover{background:var(--bg3)}
+.btn-ghost i{font-size:15px}
+.btn-green{background:var(--green);color:#fff;border-color:var(--green)}
+.btn-green:hover{background:var(--green-mid);border-color:var(--green-mid)}
+.btn-sm{padding:4px 9px;font-size:10px}
+.btn-danger:hover{background:#fee2e2;color:var(--red);border-color:var(--red)}
+
+.empty{text-align:center;padding:2.5rem 1rem;color:var(--text2);font-size:13px}
+.empty i{font-size:36px;opacity:.25;display:block;margin-bottom:10px}
+
+
+.mono{font-family:var(--font-m)}
+
+.form-g{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.form-g label{font-family:var(--font-m);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text2)}
+.form-g input,.form-g select,.form-g textarea{font-family:var(--font-b);font-size:13px;border:.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);padding:7px 10px;outline:none}
+.form-g input:focus,.form-g textarea:focus{border-color:var(--green)}
+.form-g textarea{resize:vertical;min-height:60px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.full{grid-column:1/-1}
+
+.type-grid{display:flex;flex-wrap:wrap;gap:6px}
+.type-opt{padding:5px 11px;border-radius:20px;border:.5px solid var(--border2);background:none;cursor:pointer;font-size:12px;font-family:var(--font-m);color:var(--text2);transition:all .12s}
+.type-opt:hover{border-color:var(--border2);color:var(--text)}
+.sel-baseball{background:var(--red-light)!important;color:var(--red)!important;border-color:var(--red)!important}
+.sel-flight{background:var(--blue-light)!important;color:var(--blue)!important;border-color:var(--blue)!important}
+.sel-drive{background:var(--amber-light)!important;color:#78350f!important;border-color:#92400e!important}
+.sel-hotel{background:var(--green-light)!important;color:var(--green)!important;border-color:var(--green)!important}
+.sel-food{background:var(--purple-light)!important;color:var(--purple)!important;border-color:#7c3aed!important}
+.sel-sightseeing{background:var(--teal-light)!important;color:var(--teal)!important;border-color:#059669!important}
+.sel-other{background:var(--bg3)!important;color:var(--text)!important;border-color:var(--border2)!important}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center;padding:1rem}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border-radius:var(--radius-lg);border:.5px solid var(--border2);width:100%;max-width:600px;max-height:90vh;overflow-y:auto;padding:1.5rem}
+.modal-title{font-family:var(--font-d);font-size:1.4rem;color:var(--text);margin-bottom:1rem}
+.modal-foot{display:flex;gap:8px;justify-content:flex-end;padding-top:10px;border-top:.5px solid var(--border);margin-top:10px}
+
+.travelers-wrap{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}
+.chip{font-family:var(--font-m);font-size:12px;padding:5px 12px;border-radius:20px;background:var(--green-light);color:var(--green);border:.5px solid rgba(26,71,49,.2);display:flex;align-items:center;gap:6px}
+.chip button{background:none;border:none;cursor:pointer;color:inherit;font-size:15px;padding:0;line-height:1;opacity:.7}
+.chip button:hover{opacity:1}
+
+</style>
+</head>
+<body>
+
+<div id="app">
+
+<div class="hdr">
+  <div class="hdr-inner">
+    <div>
+      <div class="eyebrow">Road trip planner</div>
+      <div class="trip-name" id="hdr-name" title="Click to rename" onclick="quickRename()">My Baseball Trip</div>
+      <div class="trip-dates" id="hdr-dates"></div>
+    </div>
+    <div class="hdr-stats">
+      <div class="stat"><div class="stat-n" id="s-games">0</div><div class="stat-l">Games</div></div>
+      <div class="stat"><div class="stat-n" id="s-days">0</div><div class="stat-l">Days</div></div>
+      <div class="stat"><div class="stat-n" id="s-parks">0</div><div class="stat-l">Parks</div></div>
+    </div>
+  </div>
+  <div class="hdr-curve"></div>
+</div>
+
+<div class="tabs">
+  <button class="tab on" onclick="tab('itinerary',this)"><i class="ti ti-calendar-event"></i>Itinerary</button>
+  <button class="tab" onclick="tab('setup',this)"><i class="ti ti-settings"></i>Trip setup</button>
+  <button class="tab" onclick="tab('hotels',this)"><i class="ti ti-building"></i>Hotels</button>
+</div>
+
+<!-- Itinerary -->
+<div id="pane-itinerary" class="pane on">
+  <div class="row-hd">
+    <div class="sec-hd">Schedule</div>
+    <button class="btn-ghost" onclick="openDayModal()"><i class="ti ti-plus"></i>Add day</button>
+  </div>
+  <div id="days-list"></div>
+</div>
+
+<!-- Setup -->
+<div id="pane-setup" class="pane">
+  <div class="sec-hd">Trip details</div>
+  <div class="form-row">
+    <div class="form-g full"><label>Trip name</label><input id="s-name" type="text" placeholder="East Coast Baseball Tour" oninput="syncMeta()"></div>
+    <div class="form-g"><label>Start date</label><input id="s-start" type="date" oninput="syncMeta()"></div>
+    <div class="form-g"><label>End date</label><input id="s-end" type="date" oninput="syncMeta()"></div>
+    <div class="form-g full"><label>Travelers</label>
+      <div style="display:flex;gap:8px">
+        <input id="s-traveler" type="text" placeholder="Name" style="flex:1" onkeydown="if(event.key==='Enter')addTraveler()">
+        <button class="btn-ghost" onclick="addTraveler()"><i class="ti ti-plus"></i>Add</button>
+      </div>
+      <div class="travelers-wrap" id="travelers-list"></div>
+    </div>
+    <div class="form-g full"><label>Trip notes</label><textarea id="s-notes" placeholder="Packing list, reminders, links..."></textarea></div>
+  </div>
+  <div style="margin-top:1rem;display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn-ghost btn-green" onclick="exportJSON()"><i class="ti ti-download"></i>Export JSON</button>
+    <button class="btn-ghost" onclick="triggerImport()"><i class="ti ti-upload"></i>Import JSON</button>
+    <input type="file" id="file-import" accept=".json" style="display:none" onchange="importJSON(this)">
+  </div>
+</div>
+
+
+<!-- Hotels -->
+<div id="pane-hotels" class="pane">
+  <div class="sec-hd">Hotels</div>
+  <div id="hotels-list"></div>
+</div>
+
+</div><!-- /app -->
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="mOverlay(event)">
+  <div class="modal" id="modal">
+    <div class="modal-title" id="modal-title">Add day</div>
+    <div id="modal-body"></div>
+    <div class="modal-foot">
+      <button class="btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn-ghost btn-green" onclick="saveModal()"><i class="ti ti-check"></i>Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TI={baseball:'ti-ball-baseball',flight:'ti-plane',drive:'ti-car',hotel:'ti-bed',food:'ti-salad',sightseeing:'ti-map-pin',other:'ti-notes'};
+const TL={baseball:'Game',flight:'Flight',drive:'Drive',hotel:'Hotel',food:'Food/Bar',sightseeing:'Sightseeing',other:'Other'};
+
+let S={
+  trip:{name:'My Baseball Trip',start:'',end:'',notes:'',travelers:[]},
+  days:[],
+  _mode:null,_target:null,_evTarget:null,_selType:'other'
+};
+
+const $=id=>document.getElementById(id);
+
+function save(){
+  try{localStorage.setItem('brt_v2',JSON.stringify({trip:S.trip,days:S.days}));}catch(e){}
+}
+function load(){
+  try{
+    const raw=localStorage.getItem('brt_v2');
+    if(raw){const d=JSON.parse(raw);S.trip={...S.trip,...d.trip};S.days=d.days||[];}
+  }catch(e){}
+  applySetup();renderAll();
+}
+
+function applySetup(){
+  $('s-name').value=S.trip.name||'';
+  $('s-start').value=S.trip.start||'';
+  $('s-end').value=S.trip.end||'';
+  $('s-notes').value=S.trip.notes||'';
+  renderTravelers();syncMeta();
+}
+
+function syncMeta(){
+  S.trip.name=$('s-name').value||'My Baseball Trip';
+  S.trip.start=$('s-start').value;
+  S.trip.end=$('s-end').value;
+  S.trip.notes=$('s-notes').value;
+  $('hdr-name').textContent=S.trip.name;
+  let dl='';
+  if(S.trip.start){
+    const a=fmtDate(S.trip.start,'short');
+    dl=a+(S.trip.end?' – '+fmtDate(S.trip.end,'short'):'');
+  }
+  $('hdr-dates').textContent=dl;
+  save();
+}
+
+function quickRename(){
+  const n=prompt('Trip name:',S.trip.name);
+  if(n&&n.trim()){S.trip.name=n.trim();$('s-name').value=S.trip.name;syncMeta();}
+}
+
+function addTraveler(){
+  const v=$('s-traveler').value.trim();if(!v)return;
+  S.trip.travelers.push(v);$('s-traveler').value='';
+  renderTravelers();save();
+}
+function removeTraveler(i){S.trip.travelers.splice(i,1);renderTravelers();save();}
+function renderTravelers(){
+  $('travelers-list').innerHTML=S.trip.travelers.map((t,i)=>
+    `<div class="chip">${esc(t)}<button onclick="removeTraveler(${i})" aria-label="Remove">×</button></div>`).join('');
+}
+
+function tab(id,btn){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  $('pane-'+id).classList.add('on');btn.classList.add('on');
+  if(id==='hotels')renderHotels();
+}
+
+function renderAll(){updateStats();renderDays();}
+
+function updateStats(){
+  const games=S.days.reduce((a,d)=>a+(d.events||[]).filter(e=>e.type==='baseball').length,0);
+  const parks=new Set(S.days.flatMap(d=>(d.events||[]).filter(e=>e.type==='baseball').map(e=>(e.venue||e.desc||'').split('·')[1]||e.desc||'').filter(Boolean))).size;
+  $('s-games').textContent=games;
+  $('s-days').textContent=S.days.length;
+  $('s-parks').textContent=parks;
+}
+
+function fmtDate(d,mode){
+  if(!d)return'';
+  const dt=new Date(d+'T12:00:00');
+  if(mode==='short')return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  return dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+}
+function fmtTime(t){
+  if(!t)return'';
+  const[h,m]=t.split(':');const hr=+h;
+  return(hr%12||12)+':'+m+(hr<12?'am':'pm');
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function money(n){return n?'$'+parseFloat(n).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}):''}
+
+function renderDays(){
+  const el=$('days-list');
+  if(!S.days.length){
+    el.innerHTML=`<div class="empty"><i class="ti ti-map-2"></i>No days yet — add your first day above.</div>`;
+    return;
+  }
+  el.innerHTML=S.days.map((day,di)=>{
+    const open=day._open!==false;
+    const evs=day.events||[];
+    const gamesBadges=evs.filter(e=>e.type==='baseball').map(e=>`<span class="badge b-baseball">${esc((e.desc||'').substring(0,28))}</span>`).join('');
+    const flightBadges=evs.filter(e=>e.type==='flight').map(()=>`<span class="badge b-flight"><i class="ti ti-plane" style="font-size:11px;margin-right:3px"></i>Flight</span>`).join('');
+    const dayFlightBadge=day.flight&&(day.flight.airline||day.flight.number)?`<span class="badge b-flight"><i class="ti ti-plane" style="font-size:11px;margin-right:3px"></i>${esc(day.flight.number||day.flight.airline)}</span>`:'';
+
+    const evHtml=evs.length?evs.map((ev,ei)=>`
+      <div class="ev">
+        <i class="ti ${TI[ev.type]||'ti-notes'} ev-icon ic-${ev.type}"></i>
+        <div class="ev-body">
+          ${ev.time?`<div class="ev-time">${fmtTime(ev.time)}</div>`:''}
+          <div class="ev-desc">${esc(ev.desc||'')}</div>
+          ${ev.type==='drive'&&ev.drive&&(ev.drive.start||ev.drive.miles)?`<div class="ev-note">${[ev.drive.start&&ev.drive.end?esc(ev.drive.start)+' → '+esc(ev.drive.end):'',ev.drive.miles?esc(ev.drive.miles)+' mi':'',ev.drive.travelTime?esc(ev.drive.travelTime):''].filter(Boolean).join(' · ')}</div>`:''}
+          ${ev.type==='flight'&&ev.flight?`<div class="ev-note">${[ev.flight.airline?esc(ev.flight.airline):'',ev.flight.departCity&&ev.flight.arrivalCity?esc(ev.flight.departCity)+' → '+esc(ev.flight.arrivalCity):'',ev.flight.connectionCity?'via '+esc(ev.flight.connectionCity):''].filter(Boolean).join(' · ')}</div>`:''}
+          ${ev.note?`<div class="ev-note">${esc(ev.note)}</div>`:''}
+        </div>
+        ${ev.cost?`<div class="ev-cost">${money(ev.cost)}</div>`:''}
+        <div class="ev-actions">
+          <button class="btn-ghost btn-sm" onclick="openEvModal(${di},${ei})" aria-label="Edit event"><i class="ti ti-edit"></i></button>
+          <button class="btn-ghost btn-sm btn-danger" onclick="removeEv(${di},${ei})" aria-label="Remove event"><i class="ti ti-x"></i></button>
+        </div>
+      </div>`).join('')
+      :`<div style="font-size:13px;color:var(--text2);padding:2px 0">No events yet.</div>`;
+
+    return `<div class="card">
+      <div class="day-hdr${open?'':' closed'}" onclick="toggleDay(${di})">
+        <div class="day-num">${di+1}</div>
+        <div class="day-info">
+          <div class="day-date-lbl">${day.date?fmtDate(day.date):'Day '+(di+1)}</div>
+          ${day.city?`<div class="day-city-lbl">${esc(day.city)}</div>`:''}
+        </div>
+        <div class="day-badges">${gamesBadges}${flightBadges}${dayFlightBadge}</div>
+        <i class="ti ti-chevron-down chev${open?' open':''}"></i>
+        <button class="btn-ghost btn-sm" onclick="event.stopPropagation();openDayModal(${di})" aria-label="Edit day"><i class="ti ti-edit"></i></button>
+        <button class="btn-ghost btn-sm btn-danger" onclick="event.stopPropagation();removeDay(${di})" aria-label="Remove day"><i class="ti ti-trash"></i></button>
+      </div>
+      ${open?`<div class="day-body">
+        <div>
+          <div class="sub-lbl">Events</div>
+          <div class="ev-list">${evHtml}</div>
+          <button class="btn-ghost" style="margin-top:8px" onclick="openEvModal(${di})"><i class="ti ti-plus"></i>Add event</button>
+        </div>
+        ${day.lodging&&day.lodging.name?`<div>
+          <div class="sub-lbl">Lodging</div>
+          <div class="lodge-block">
+            <div class="lodge-name">${esc(day.lodging.name)}</div>
+            ${day.lodging.conf?`<div class="lodge-sub">Conf: ${esc(day.lodging.conf)}</div>`:''}
+            ${day.lodging.cost?`<div class="lodge-cost">${money(day.lodging.cost)}</div>`:''}
+            ${day.lodging.note?`<div class="lodge-sub" style="margin-top:3px">${esc(day.lodging.note)}</div>`:''}
+          </div>
+        </div>`:''}
+        ${day.flight&&(day.flight.airline||day.flight.number)?`<div>
+          <div class="sub-lbl">Flight</div>
+          <div class="lodge-block">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              ${day.flight.airline?`<div class="lodge-name">${esc(day.flight.airline)}</div>`:''}
+              ${day.flight.number?`<span class="badge b-flight">${esc(day.flight.number)}</span>`:''}
+              ${day.flight.conf?`<span style="font-family:var(--font-m);font-size:11px;color:var(--text2)">Conf: ${esc(day.flight.conf)}</span>`:''}
+            </div>
+            ${(day.flight.from||day.flight.to)?`<div style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:13px;font-weight:500;color:var(--text)">
+              ${day.flight.from?`<span>${esc(day.flight.from)}</span>`:''}
+              ${(day.flight.depart)?`<span style="font-family:var(--font-m);font-size:11px;color:var(--text2)">${fmtTime(day.flight.depart)}</span>`:''}
+              <i class="ti ti-arrow-right" style="font-size:14px;color:var(--text2)"></i>
+              ${day.flight.to?`<span>${esc(day.flight.to)}</span>`:''}
+              ${(day.flight.arrive)?`<span style="font-family:var(--font-m);font-size:11px;color:var(--text2)">${fmtTime(day.flight.arrive)}</span>`:''}
+            </div>`:''}
+            ${day.flight.connection?`<div class="lodge-sub" style="margin-top:4px">Connection: ${esc(day.flight.connection)}${day.flight.layover?' · Layover: '+esc(day.flight.layover):''}</div>`:''}
+          </div>
+        </div>`:''}
+        ${day.notes?`<div><div class="sub-lbl">Day notes</div><div class="notes-block">${esc(day.notes)}</div></div>`:''}
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function toggleDay(i){S.days[i]._open=S.days[i]._open===false;renderDays();}
+function removeDay(i){if(confirm('Remove this day and all its events?')){S.days.splice(i,1);renderAll();save();}}
+function removeEv(di,ei){S.days[di].events.splice(ei,1);renderAll();save();}
+
+function openDayModal(di){
+  S._mode='day';S._target=di!=null?di:null;
+  const day=di!=null?S.days[di]:{};
+  $('modal-title').textContent=di!=null?'Edit day':'Add day';
+  // Auto-suggest next date when adding a new day
+  let autoDate=day.date||'';
+  if(!autoDate && S._target==null && S.days.length>0){
+    const dates=S.days.map(d=>d.date).filter(Boolean).sort();
+    if(dates.length){
+      const last=new Date(dates[dates.length-1]+'T12:00:00');
+      last.setDate(last.getDate()+1);
+      autoDate=last.toISOString().slice(0,10);
+    }
+  }
+  $('modal-body').innerHTML=`
+    <div class="form-row">
+      <div class="form-g"><label>Date</label><input type="date" id="f-date" value="${autoDate}"></div>
+      <div class="form-g"><label>City / location</label><input type="text" id="f-city" placeholder="New York, NY" value="${esc(day.city||'')}"></div>
+      <div class="form-g full"><label>Day notes</label><textarea id="f-dnotes" placeholder="Notes for this day...">${esc(day.notes||'')}</textarea></div>
+    </div>`;
+  openModal();
+}
+
+function openEvModal(di,ei){
+  S._mode='event';S._target=di;S._evTarget=ei!=null?ei:null;
+  const ev=ei!=null?S.days[di].events[ei]:{};
+  S._selType=ev.type||'other';
+  const dr=ev.drive||{};
+  const fl=ev.flight||{};
+  // Seed state so renderEvFields has values on first render
+  S._evDesc=ev.desc||''; S._evNote=ev.note||'';
+  S._evTime=ev.time||''; S._evCost=ev.cost!=null?String(ev.cost):'';
+  S._evDstart=dr.start||''; S._evDend=dr.end||'';
+  S._evDmiles=dr.miles!=null?String(dr.miles):''; S._evDtime=dr.travelTime||'';
+  S._evFairline=fl.airline||''; S._evFdepart=fl.departCity||'';
+  S._evFconnect=fl.connectionCity||''; S._evFarrive=fl.arrivalCity||'';
+  S._evFconnArr=fl.connectionArrival||''; S._evFconnDep=fl.connectionDeparture||'';
+  S._evFarrTime=fl.arrivalTime||'';
+  S._evHaddr=ev.hotelAddr||''; S._evHconf=ev.hotelConf||''; S._evHphone=ev.hotelPhone||'';
+  $('modal-title').textContent=ei!=null?'Edit event':'Add event';
+  const types=['baseball','flight','drive','hotel','food','sightseeing','other'];
+  $('modal-body').innerHTML=`
+    <div class="form-g"><label>Event type</label>
+      <div class="type-grid">${types.map(t=>`<button type="button" class="type-opt${S._selType===t?' sel-'+t:''}" id="topt-${t}" onclick="selType('${t}')">${TL[t]}</button>`).join('')}</div>
+    </div>
+    <div id="ev-dynamic-fields"></div>`;
+  openModal();
+  renderEvFields();
+}
+
+function selType(t){
+  S._selType=t;
+  document.querySelectorAll('.type-opt').forEach(b=>{
+    b.className='type-opt';
+    if(b.id==='topt-'+t)b.className='type-opt sel-'+t;
+  });
+  renderEvFields();
+}
+
+function renderEvFields(){
+  const wrap=document.getElementById('ev-dynamic-fields');
+  if(!wrap)return;
+  const t=S._selType;
+  // Preserve existing values if fields already rendered
+  const curDesc=document.getElementById('f-edesc')?.value||S._evDesc||'';
+  const curNote=document.getElementById('f-enote')?.value||S._evNote||'';
+  const curTime=document.getElementById('f-etime')?.value||S._evTime||'';
+  const curCost=document.getElementById('f-ecost')?.value||S._evCost||'';
+  const curDstart=document.getElementById('f-dstart')?.value||S._evDstart||'';
+  const curDend=document.getElementById('f-dend')?.value||S._evDend||'';
+  const curDmiles=document.getElementById('f-dmiles')?.value||S._evDmiles||'';
+  const curDtime=document.getElementById('f-dtime')?.value||S._evDtime||'';
+  const curFairline=document.getElementById('f-fairline')?.value||S._evFairline||'';
+  const curFdepart=document.getElementById('f-fdepart')?.value||S._evFdepart||'';
+  const curFconnect=document.getElementById('f-fconnect')?.value||S._evFconnect||'';
+  const curFarrive=document.getElementById('f-farrive')?.value||S._evFarrive||'';
+  const curFconnArr=document.getElementById('f-fconnarr')?.value||S._evFconnArr||'';
+  const curFconnDep=document.getElementById('f-fconndep')?.value||S._evFconnDep||'';
+  const curFarrTime=document.getElementById('f-farrtime')?.value||S._evFarrTime||'';
+  // Labels per type
+  const timeLabel=t==='baseball'?'Game time':t==='flight'?'Departure time':'Time';
+  const descLabel=t==='baseball'?'Teams playing':t==='hotel'?'Hotel name':'Description';
+  const descPlaceholder=t==='baseball'?'Yankees vs Red Sox · Yankee Stadium':t==='hotel'?'Marriott Downtown':'Description';
+  const driveFirst=t==='drive';
+  const flightBlock=t==='flight'?`
+    <div style="border-top:.5px solid var(--border);margin:4px 0 12px"></div>
+    <div class="sub-lbl" style="margin-bottom:10px">Flight details</div>
+    <div class="form-row">
+      <div class="form-g full"><label>Airline</label><input type="text" id="f-fairline" placeholder="United, Delta, Southwest…" value="${curFairline}"></div>
+      <div class="form-g"><label>Departure city</label><input type="text" id="f-fdepart" placeholder="San Francisco (SFO)" value="${curFdepart}"></div>
+      <div class="form-g"><label>Arrival city</label><input type="text" id="f-farrive" placeholder="New York (EWR)" value="${curFarrive}"></div>
+      <div class="form-g"><label>Arrival time</label><input type="time" id="f-farrtime" value="${curFarrTime}"></div>
+      <div class="form-g"><label>Connection city</label><input type="text" id="f-fconnect" placeholder="Chicago (ORD) — leave blank if direct" value="${curFconnect}"></div>
+      <div class="form-g"><label>Connection arrival</label><input type="time" id="f-fconnarr" value="${curFconnArr}"></div>
+      <div class="form-g"><label>Connection departure</label><input type="time" id="f-fconndep" value="${curFconnDep}"></div>
+    </div>`
+  :'';
+  const driveBlock=`
+    <div style="border-top:.5px solid var(--border);margin:4px 0 12px"></div>
+    <div class="sub-lbl" style="margin-bottom:10px">Drive details</div>
+    <div class="form-row">
+      <div class="form-g"><label>Start city</label><input type="text" id="f-dstart" placeholder="New York, NY" value="${curDstart}"></div>
+      <div class="form-g"><label>End city</label><input type="text" id="f-dend" placeholder="Philadelphia, PA" value="${curDend}"></div>
+      <div class="form-g"><label>Miles</label><input type="number" id="f-dmiles" placeholder="114" value="${curDmiles}"></div>
+      <div class="form-g"><label>Travel time</label><input type="text" id="f-dtime" placeholder="2h 00m" value="${curDtime}"></div>
+    </div>`;
+  const curHaddr=document.getElementById('f-haddr')?.value||S._evHaddr||'';
+  const curHconf=document.getElementById('f-hconf')?.value||S._evHconf||'';
+  const curHphone=document.getElementById('f-hphone')?.value||S._evHphone||'';
+  const hotelBlock=t==='hotel'?`
+    <div style="border-top:.5px solid var(--border);margin:4px 0 12px"></div>
+    <div class="sub-lbl" style="margin-bottom:10px">Hotel details</div>
+    <div class="form-row">
+      <div class="form-g full"><label>Address</label><input type="text" id="f-haddr" placeholder="123 Main St, New York, NY 10001" value="${curHaddr}"></div>
+      <div class="form-g"><label>Confirmation #</label><input type="text" id="f-hconf" placeholder="ABC12345" value="${curHconf}"></div>
+      <div class="form-g"><label>Phone number</label><input type="tel" id="f-hphone" placeholder="(212) 555-0100" value="${curHphone}"></div>
+    </div>`
+  :'';
+  const mainBlock=`
+    <div class="form-row">
+      <div class="form-g"><label>${timeLabel}</label><input type="time" id="f-etime" value="${curTime}"></div>
+      <div class="form-g"><label>Cost ($)</label><input type="number" id="f-ecost" placeholder="0" value="${curCost}"></div>
+      <div class="form-g full"><label>${descLabel}</label><input type="text" id="f-edesc" placeholder="${descPlaceholder}" value="${curDesc}"></div>
+      <div class="form-g full"><label>${t==='hotel'?'Notes':'Notes / confirmation #'}</label><input type="text" id="f-enote" placeholder="${t==='hotel'?'Special requests, parking, etc.':'Conf: XXXXX · Section 203 Row 5'}" value="${curNote}"></div>
+    </div>`;
+  wrap.innerHTML=driveFirst?(driveBlock+mainBlock):mainBlock+(t==='drive'?driveBlock:'')+flightBlock+hotelBlock;
+  // Attach phone formatter after DOM update
+  const phoneEl=document.getElementById('f-hphone');
+  if(phoneEl){phoneEl.addEventListener('input',formatPhone);}
+}
+
+function openModal(){
+  $('modal-overlay').classList.add('open');
+  setTimeout(()=>{const f=$('modal').querySelector('input[type="text"],input[type="date"],textarea');f&&f.focus();},50);
+}
+function closeModal(){$('modal-overlay').classList.remove('open');}
+function mOverlay(e){if(e.target===$('modal-overlay'))closeModal();}
+
+function saveModal(){
+  if(S._mode==='day'){
+    const date=$('f-date')?.value||'';
+    const city=$('f-city')?.value||'';
+    const notes=$('f-dnotes')?.value||'';
+    if(S._target!=null){
+      Object.assign(S.days[S._target],{date,city,notes});
+    } else {
+      S.days.push({date,city,notes,events:[],_open:true});
+      S.days.sort((a,b)=>(a.date||'zzzz')>(b.date||'zzzz')?1:-1);
+    }
+  } else if(S._mode==='event'){
+    const di=S._target;
+    const time=$('f-etime')?.value||'';
+    const desc=$('f-edesc')?.value||'';
+    const note=$('f-enote')?.value||'';
+    const cost=$('f-ecost')?.value||'';
+    if(!desc){alert('Please enter a description.');return;}
+    const driveData=S._selType==='drive'?{
+      start:$('f-dstart')?.value||'',
+      end:$('f-dend')?.value||'',
+      miles:$('f-dmiles')?.value||'',
+      travelTime:$('f-dtime')?.value||''
+    }:null;
+    const hotelAddr=S._selType==='hotel'?$('f-haddr')?.value||'':'';
+    const hotelConf=S._selType==='hotel'?$('f-hconf')?.value||'':'';
+    const hotelPhone=S._selType==='hotel'?$('f-hphone')?.value||'':'';
+    const flightData=S._selType==='flight'?{
+      airline:$('f-fairline')?.value||'',
+      departCity:$('f-fdepart')?.value||'',
+      arrivalCity:$('f-farrive')?.value||'',
+      arrivalTime:$('f-farrtime')?.value||'',
+      connectionCity:$('f-fconnect')?.value||'',
+      connectionArrival:$('f-fconnarr')?.value||'',
+      connectionDeparture:$('f-fconndep')?.value||''
+    }:null;
+    const ev={type:S._selType,time,desc,note,cost:cost?parseFloat(cost):'',drive:driveData,flight:flightData,hotelAddr,hotelConf,hotelPhone};
+    if(S._evTarget!=null){
+      S.days[di].events[S._evTarget]=ev;
+    } else {
+      S.days[di].events.push(ev);
+    }
+    S.days[di].events.sort((a,b)=>(a.time||'99:99')>(b.time||'99:99')?1:-1);
+  }
+  closeModal();renderAll();save();if($('pane-hotels').classList.contains('on'))renderHotels();
+}
+
+
+function formatPhone(e){
+  let v=e.target.value.replace(/\D/g,'').substring(0,10);
+  if(v.length>6) v='('+v.substring(0,3)+') '+v.substring(3,6)+'-'+v.substring(6);
+  else if(v.length>3) v='('+v.substring(0,3)+') '+v.substring(3);
+  else if(v.length) v='('+v;
+  e.target.value=v;
+}
+
+function renderHotels(){
+  const el=$('hotels-list');
+  if(!el)return;
+  const hotels=[];
+  S.days.forEach((d,di)=>{
+    (d.events||[]).forEach(ev=>{
+      if(ev.type==='hotel'&&ev.desc){
+        hotels.push({
+          name:ev.desc,
+          addr:ev.hotelAddr||'',
+          conf:ev.hotelConf||ev.note||'',
+          phone:ev.hotelPhone||'',
+          day:d.date?fmtDate(d.date,'short'):'Day '+(di+1),
+          city:d.city||''
+        });
+      }
+    });
+  });
+  if(!hotels.length){
+    el.innerHTML=`<div class="empty"><i class="ti ti-building-off"></i>No hotels added yet.<br>Add a Hotel event in the Itinerary tab to see it here.</div>`;
+    return;
+  }
+  el.innerHTML=hotels.map(h=>`
+    <div class="card" style="margin-bottom:10px;padding:16px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:500;font-size:15px;color:var(--text)">${esc(h.name)}</div>
+          ${h.city?`<div style="font-family:var(--font-m);font-size:11px;color:var(--text2);margin-top:2px">${esc(h.city)} · ${esc(h.day)}</div>`:`<div style="font-family:var(--font-m);font-size:11px;color:var(--text2);margin-top:2px">${esc(h.day)}</div>`}
+        </div>
+        <span class="badge b-hotel"><i class="ti ti-bed" style="font-size:11px;margin-right:4px"></i>Hotel</span>
+      </div>
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:7px">
+        ${h.addr?`<div style="display:flex;align-items:flex-start;gap:8px">
+          <i class="ti ti-map-pin" style="font-size:15px;color:var(--text2);margin-top:1px;flex-shrink:0"></i>
+          <span style="font-size:13px;color:var(--text)">${esc(h.addr)}</span>
+        </div>`:''}
+        ${h.conf?`<div style="display:flex;align-items:center;gap:8px">
+          <i class="ti ti-file-check" style="font-size:15px;color:var(--text2);flex-shrink:0"></i>
+          <span style="font-family:var(--font-m);font-size:12px;color:var(--text)">Conf: ${esc(h.conf)}</span>
+        </div>`:''}
+        ${h.phone?`<div style="display:flex;align-items:center;gap:8px">
+          <i class="ti ti-phone" style="font-size:15px;color:var(--text2);flex-shrink:0"></i>
+          <a href="tel:${esc(h.phone)}" style="font-family:var(--font-m);font-size:12px;color:var(--green);text-decoration:none">${esc(h.phone)}</a>
+        </div>`:''}
+        ${!h.addr&&!h.conf&&!h.phone?`<div style="font-size:12px;color:var(--text2);font-style:italic">No details saved — edit the event to add address, confirmation, and phone.</div>`:''}
+      </div>
+    </div>`).join('');
+}
+
+function exportJSON(){
+  const data=JSON.stringify({trip:S.trip,days:S.days},null,2);
+  const a=document.createElement('a');
+  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(data);
+  a.download=(S.trip.name||'baseball-trip').replace(/\s+/g,'-').toLowerCase()+'.json';
+  a.click();
+}
+function triggerImport(){$('file-import').click();}
+function importJSON(inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const d=JSON.parse(e.target.result);
+      if(d.trip)S.trip={...S.trip,...d.trip};
+      if(d.days)S.days=d.days;
+      applySetup();renderAll();save();
+      alert('Import successful!');
+    }catch(err){alert('Could not parse JSON file.');}
+  };
+  r.readAsText(f);
+}
+
+load();
+</script>
+</body>
+</html>
