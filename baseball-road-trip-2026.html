@@ -112,16 +112,7 @@ body{font-family:var(--font-b);background:var(--bg);min-height:100vh;color:var(-
 .empty{text-align:center;padding:2.5rem 1rem;color:var(--text2);font-size:13px}
 .empty i{font-size:36px;opacity:.25;display:block;margin-bottom:10px}
 
-.scorecard{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem}
-.sc{background:var(--bg2);border:.5px solid var(--border);border-radius:var(--radius);padding:12px 14px}
-.sc-n{font-family:var(--font-d);font-size:1.9rem;color:var(--green)}
-.sc-l{font-family:var(--font-m);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);margin-top:2px}
 
-.costs-tbl{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
-.costs-tbl th{font-family:var(--font-m);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);padding:6px 10px;text-align:left;border-bottom:.5px solid var(--border)}
-.costs-tbl td{padding:8px 10px;border-bottom:.5px solid var(--border);color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.costs-tbl tr:last-child td{border-bottom:none}
-.costs-tbl .tot td{font-weight:500;background:var(--bg3)}
 .mono{font-family:var(--font-m)}
 
 .form-g{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
@@ -154,8 +145,6 @@ body{font-family:var(--font-b);background:var(--bg);min-height:100vh;color:var(-
 .chip button{background:none;border:none;cursor:pointer;color:inherit;font-size:15px;padding:0;line-height:1;opacity:.7}
 .chip button:hover{opacity:1}
 
-.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px}
-.progress-fill{height:100%;background:var(--green);border-radius:2px;transition:width .3s}
 </style>
 </head>
 <body>
@@ -181,7 +170,6 @@ body{font-family:var(--font-b);background:var(--bg);min-height:100vh;color:var(-
 <div class="tabs">
   <button class="tab on" onclick="tab('itinerary',this)"><i class="ti ti-calendar-event"></i>Itinerary</button>
   <button class="tab" onclick="tab('setup',this)"><i class="ti ti-settings"></i>Trip setup</button>
-  <button class="tab" onclick="tab('costs',this)"><i class="ti ti-receipt"></i>Costs</button>
 </div>
 
 <!-- Itinerary -->
@@ -216,15 +204,6 @@ body{font-family:var(--font-b);background:var(--bg);min-height:100vh;color:var(-
   </div>
 </div>
 
-<!-- Costs -->
-<div id="pane-costs" class="pane">
-  <div class="scorecard">
-    <div class="sc"><div class="sc-n" id="c-total">$0</div><div class="sc-l">Total budget</div></div>
-    <div class="sc"><div class="sc-n" id="c-pp">$0</div><div class="sc-l">Per person</div></div>
-    <div class="sc"><div class="sc-n" id="c-games">0</div><div class="sc-l">Games planned</div></div>
-  </div>
-  <div id="costs-wrap"></div>
-</div>
 
 </div><!-- /app -->
 
@@ -306,7 +285,6 @@ function tab(id,btn){
   document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
   $('pane-'+id).classList.add('on');btn.classList.add('on');
-  if(id==='costs')renderCosts();
 }
 
 function renderAll(){updateStats();renderDays();}
@@ -582,72 +560,9 @@ function saveModal(){
     }
     S.days[di].events.sort((a,b)=>(a.time||'99:99')>(b.time||'99:99')?1:-1);
   }
-  closeModal();renderAll();save();renderCosts();
+  closeModal();renderAll();save();
 }
 
-function renderCosts(){
-  const rows=[];let total=0;
-  S.days.forEach((d,di)=>{
-    (d.events||[]).forEach(ev=>{
-      if(ev.cost){rows.push({day:d.date?fmtDate(d.date,'short'):'Day '+(di+1),type:ev.type,desc:ev.desc,cost:+ev.cost});total+=+ev.cost;}
-    });
-    if(d.lodging?.cost){
-      rows.push({day:d.date?fmtDate(d.date,'short'):'Day '+(di+1),type:'hotel',desc:d.lodging.name||'Lodging',cost:+d.lodging.cost});
-      total+=+d.lodging.cost;
-    }
-  });
-  const pax=Math.max(1,S.trip.travelers.length);
-  $('c-total').textContent='$'+Math.round(total).toLocaleString();
-  $('c-pp').textContent='$'+Math.round(total/pax).toLocaleString();
-  $('c-games').textContent=S.days.reduce((a,d)=>a+(d.events||[]).filter(e=>e.type==='baseball').length,0);
-
-  const wrap=$('costs-wrap');
-  if(!rows.length){
-    wrap.innerHTML=`<div class="empty"><i class="ti ti-receipt-off"></i>No costs logged yet.<br>Add costs to events or lodging.</div>`;
-    return;
-  }
-
-  const byType={};
-  rows.forEach(r=>{byType[r.type]=(byType[r.type]||0)+r.cost;});
-  const typeBreakdown=Object.entries(byType).sort((a,b)=>b[1]-a[1]).map(([t,c])=>{
-    const pct=total?Math.round(c/total*100):0;
-    return`<div style="margin-bottom:8px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
-        <span class="badge b-${t}">${TL[t]||t}</span>
-        <span class="mono" style="font-size:12px;color:var(--text2)">${money(c)} · ${pct}%</span>
-      </div>
-      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-    </div>`;
-  }).join('');
-
-  wrap.innerHTML=`
-    <div class="card" style="padding:14px;margin-bottom:14px">
-      <div class="sub-lbl" style="margin-bottom:10px">Breakdown by category</div>
-      ${typeBreakdown}
-    </div>
-    <div class="sec-hd" style="margin-bottom:10px">All costs</div>
-    <div style="overflow-x:auto">
-    <table class="costs-tbl">
-      <colgroup><col style="width:28%"><col style="width:16%"><col style="width:40%"><col style="width:16%"></colgroup>
-      <thead><tr><th>Day</th><th>Type</th><th>Item</th><th style="text-align:right">Cost</th></tr></thead>
-      <tbody>
-        ${rows.map(r=>`<tr>
-          <td class="mono" style="font-size:11px;color:var(--text2)">${r.day}</td>
-          <td><span class="badge b-${r.type}">${TL[r.type]||r.type}</span></td>
-          <td>${esc(r.desc)}</td>
-          <td class="mono" style="text-align:right">${money(r.cost)}</td>
-        </tr>`).join('')}
-        <tr class="tot">
-          <td colspan="3" class="mono" style="font-size:10px;letter-spacing:.1em;text-transform:uppercase">Total${pax>1?' ('+pax+' travelers)':''}</td>
-          <td class="mono" style="text-align:right;color:var(--green)">${money(total)}</td>
-        </tr>
-        ${pax>1?`<tr class="tot">
-          <td colspan="3" class="mono" style="font-size:10px;letter-spacing:.1em;text-transform:uppercase">Per person</td>
-          <td class="mono" style="text-align:right;color:var(--green)">$${Math.round(total/pax).toLocaleString()}</td>
-        </tr>`:''}
-      </tbody>
-    </table></div>`;
-}
 
 function exportJSON(){
   const data=JSON.stringify({trip:S.trip,days:S.days},null,2);
