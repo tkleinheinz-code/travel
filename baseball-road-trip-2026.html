@@ -170,6 +170,7 @@ body{font-family:var(--font-b);background:var(--bg);min-height:100vh;color:var(-
 <div class="tabs">
   <button class="tab on" onclick="tab('itinerary',this)"><i class="ti ti-calendar-event"></i>Itinerary</button>
   <button class="tab" onclick="tab('setup',this)"><i class="ti ti-settings"></i>Trip setup</button>
+  <button class="tab" onclick="tab('hotels',this)"><i class="ti ti-building"></i>Hotels</button>
 </div>
 
 <!-- Itinerary -->
@@ -204,6 +205,12 @@ body{font-family:var(--font-b);background:var(--bg);min-height:100vh;color:var(-
   </div>
 </div>
 
+
+<!-- Hotels -->
+<div id="pane-hotels" class="pane">
+  <div class="sec-hd">Hotels</div>
+  <div id="hotels-list"></div>
+</div>
 
 </div><!-- /app -->
 
@@ -285,6 +292,7 @@ function tab(id,btn){
   document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
   $('pane-'+id).classList.add('on');btn.classList.add('on');
+  if(id==='hotels')renderHotels();
 }
 
 function renderAll(){updateStats();renderDays();}
@@ -435,6 +443,7 @@ function openEvModal(di,ei){
   S._evFconnect=fl.connectionCity||''; S._evFarrive=fl.arrivalCity||'';
   S._evFconnArr=fl.connectionArrival||''; S._evFconnDep=fl.connectionDeparture||'';
   S._evFarrTime=fl.arrivalTime||'';
+  S._evHaddr=ev.hotelAddr||''; S._evHconf=ev.hotelConf||''; S._evHphone=ev.hotelPhone||'';
   $('modal-title').textContent=ei!=null?'Edit event':'Add event';
   const types=['baseball','flight','drive','hotel','food','sightseeing','other'];
   $('modal-body').innerHTML=`
@@ -502,6 +511,18 @@ function renderEvFields(){
       <div class="form-g"><label>Miles</label><input type="number" id="f-dmiles" placeholder="114" value="${curDmiles}"></div>
       <div class="form-g"><label>Travel time</label><input type="text" id="f-dtime" placeholder="2h 00m" value="${curDtime}"></div>
     </div>`;
+  const curHaddr=document.getElementById('f-haddr')?.value||S._evHaddr||'';
+  const curHconf=document.getElementById('f-hconf')?.value||S._evHconf||'';
+  const curHphone=document.getElementById('f-hphone')?.value||S._evHphone||'';
+  const hotelBlock=t==='hotel'?`
+    <div style="border-top:.5px solid var(--border);margin:4px 0 12px"></div>
+    <div class="sub-lbl" style="margin-bottom:10px">Hotel details</div>
+    <div class="form-row">
+      <div class="form-g full"><label>Address</label><input type="text" id="f-haddr" placeholder="123 Main St, New York, NY 10001" value="${curHaddr}"></div>
+      <div class="form-g"><label>Confirmation #</label><input type="text" id="f-hconf" placeholder="ABC12345" value="${curHconf}"></div>
+      <div class="form-g"><label>Phone number</label><input type="tel" id="f-hphone" placeholder="(212) 555-0100" value="${curHphone}"></div>
+    </div>`
+  :'';
   const mainBlock=`
     <div class="form-row">
       <div class="form-g"><label>${timeLabel}</label><input type="time" id="f-etime" value="${curTime}"></div>
@@ -509,7 +530,7 @@ function renderEvFields(){
       <div class="form-g full"><label>${descLabel}</label><input type="text" id="f-edesc" placeholder="${descPlaceholder}" value="${curDesc}"></div>
       <div class="form-g full"><label>Notes / confirmation #</label><input type="text" id="f-enote" placeholder="Conf: XXXXX · Section 203 Row 5" value="${curNote}"></div>
     </div>`;
-  wrap.innerHTML=driveFirst?(driveBlock+mainBlock):mainBlock+(t==='drive'?driveBlock:'')+flightBlock;
+  wrap.innerHTML=driveFirst?(driveBlock+mainBlock):mainBlock+(t==='drive'?driveBlock:'')+flightBlock+hotelBlock;
 }
 
 function openModal(){
@@ -543,6 +564,9 @@ function saveModal(){
       miles:$('f-dmiles')?.value||'',
       travelTime:$('f-dtime')?.value||''
     }:null;
+    const hotelAddr=S._selType==='hotel'?$('f-haddr')?.value||'':'';
+    const hotelConf=S._selType==='hotel'?$('f-hconf')?.value||'':'';
+    const hotelPhone=S._selType==='hotel'?$('f-hphone')?.value||'':'';
     const flightData=S._selType==='flight'?{
       airline:$('f-fairline')?.value||'',
       departCity:$('f-fdepart')?.value||'',
@@ -552,7 +576,7 @@ function saveModal(){
       connectionArrival:$('f-fconnarr')?.value||'',
       connectionDeparture:$('f-fconndep')?.value||''
     }:null;
-    const ev={type:S._selType,time,desc,note,cost:cost?parseFloat(cost):'',drive:driveData,flight:flightData};
+    const ev={type:S._selType,time,desc,note,cost:cost?parseFloat(cost):'',drive:driveData,flight:flightData,hotelAddr,hotelConf,hotelPhone};
     if(S._evTarget!=null){
       S.days[di].events[S._evTarget]=ev;
     } else {
@@ -560,9 +584,58 @@ function saveModal(){
     }
     S.days[di].events.sort((a,b)=>(a.time||'99:99')>(b.time||'99:99')?1:-1);
   }
-  closeModal();renderAll();save();
+  closeModal();renderAll();save();if($('pane-hotels').classList.contains('on'))renderHotels();
 }
 
+
+function renderHotels(){
+  const el=$('hotels-list');
+  if(!el)return;
+  const hotels=[];
+  S.days.forEach((d,di)=>{
+    (d.events||[]).forEach(ev=>{
+      if(ev.type==='hotel'&&ev.desc){
+        hotels.push({
+          name:ev.desc,
+          addr:ev.hotelAddr||'',
+          conf:ev.hotelConf||ev.note||'',
+          phone:ev.hotelPhone||'',
+          day:d.date?fmtDate(d.date,'short'):'Day '+(di+1),
+          city:d.city||''
+        });
+      }
+    });
+  });
+  if(!hotels.length){
+    el.innerHTML=`<div class="empty"><i class="ti ti-building-off"></i>No hotels added yet.<br>Add a Hotel event in the Itinerary tab to see it here.</div>`;
+    return;
+  }
+  el.innerHTML=hotels.map(h=>`
+    <div class="card" style="margin-bottom:10px;padding:16px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:500;font-size:15px;color:var(--text)">${esc(h.name)}</div>
+          ${h.city?`<div style="font-family:var(--font-m);font-size:11px;color:var(--text2);margin-top:2px">${esc(h.city)} · ${esc(h.day)}</div>`:`<div style="font-family:var(--font-m);font-size:11px;color:var(--text2);margin-top:2px">${esc(h.day)}</div>`}
+        </div>
+        <span class="badge b-hotel"><i class="ti ti-bed" style="font-size:11px;margin-right:4px"></i>Hotel</span>
+      </div>
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:7px">
+        ${h.addr?`<div style="display:flex;align-items:flex-start;gap:8px">
+          <i class="ti ti-map-pin" style="font-size:15px;color:var(--text2);margin-top:1px;flex-shrink:0"></i>
+          <span style="font-size:13px;color:var(--text)">${esc(h.addr)}</span>
+        </div>`:''}
+        ${h.conf?`<div style="display:flex;align-items:center;gap:8px">
+          <i class="ti ti-file-check" style="font-size:15px;color:var(--text2);flex-shrink:0"></i>
+          <span style="font-family:var(--font-m);font-size:12px;color:var(--text)">Conf: ${esc(h.conf)}</span>
+        </div>`:''}
+        ${h.phone?`<div style="display:flex;align-items:center;gap:8px">
+          <i class="ti ti-phone" style="font-size:15px;color:var(--text2);flex-shrink:0"></i>
+          <a href="tel:${esc(h.phone)}" style="font-family:var(--font-m);font-size:12px;color:var(--green);text-decoration:none">${esc(h.phone)}</a>
+        </div>`:''}
+        ${!h.addr&&!h.conf&&!h.phone?`<div style="font-size:12px;color:var(--text2);font-style:italic">No details saved — edit the event to add address, confirmation, and phone.</div>`:''}
+      </div>
+    </div>`).join('');
+}
 
 function exportJSON(){
   const data=JSON.stringify({trip:S.trip,days:S.days},null,2);
