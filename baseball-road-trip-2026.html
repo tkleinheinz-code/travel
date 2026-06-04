@@ -269,6 +269,19 @@ let S={
 
 let fbDb=null, fbRef=null, _ignoreNext=false, _saveTimer=null;
 
+// Firebase stores arrays as {0:{...},1:{...}} — convert back to real arrays
+function toArr(val){
+  if(!val)return[];
+  if(Array.isArray(val))return val.filter(v=>v!=null);
+  return Object.keys(val).sort((a,b)=>+a-+b).map(k=>val[k]).filter(v=>v!=null);
+}
+function normalizeDays(days){
+  return toArr(days).map(d=>({
+    ...d,
+    events:toArr(d.events)
+  }));
+}
+
 const $=id=>document.getElementById(id);
 
 // ── Firebase ──────────────────────────────────────────────────
@@ -343,7 +356,7 @@ function connectWithConfig(cfg){
       const data=snapshot.val();
       if(data){
         S.trip={...S.trip,...(data.trip||{})};
-        S.days=data.days||[];
+        S.days=normalizeDays(data.days);
         applySetup();renderAll();
       }
       setSyncStatus('live','Live — syncing with all collaborators');
@@ -374,7 +387,7 @@ function save(){
 function loadLocal(){
   try{
     const raw=localStorage.getItem('brt_v2');
-    if(raw){const d=JSON.parse(raw);S.trip={...S.trip,...d.trip};S.days=d.days||[];}
+    if(raw){const d=JSON.parse(raw);S.trip={...S.trip,...d.trip};S.days=normalizeDays(d.days);}
   }catch(e){}
   applySetup();renderAll();
 }
@@ -456,11 +469,11 @@ function renderDays(){
   el.innerHTML=S.days.map((day,di)=>{
     const open=day._open!==false;
     const evs=day.events||[];
-    const gamesBadges=evs.filter(e=>e.type==='baseball').map(e=>`<span class="badge b-baseball">${esc((e.desc||'').substring(0,28))}</span>`).join('');
-    const flightBadges=evs.filter(e=>e.type==='flight').map(()=>`<span class="badge b-flight"><i class="ti ti-plane" style="font-size:11px;margin-right:3px"></i>Flight</span>`).join('');
+    const gamesBadges=evs.filter(e=>e&&String(e.type||'').trim()==='baseball').map(e=>`<span class="badge b-baseball">${esc((e.desc||'').substring(0,28))}</span>`).join('');
+    const flightBadges=evs.filter(e=>e&&String(e.type||'').trim()==='flight').map(()=>`<span class="badge b-flight"><i class="ti ti-plane" style="font-size:11px;margin-right:3px"></i>Flight</span>`).join('');
     const dayFlightBadge=day.flight&&(day.flight.airline||day.flight.number)?`<span class="badge b-flight"><i class="ti ti-plane" style="font-size:11px;margin-right:3px"></i>${esc(day.flight.number||day.flight.airline)}</span>`:'';
-    const hotelBadges=evs.filter(e=>e.type==='hotel'&&e.desc).map(e=>`<span class="badge b-hotel"><i class="ti ti-bed" style="font-size:11px;margin-right:3px"></i>${esc(e.desc.substring(0,28))}</span>`).join('');
-    const evHtml=evs.length?evs.map((ev,ei)=>`
+    const hotelBadges=evs.filter(e=>e&&String(e.type||'').trim()==='hotel').map(e=>`<span class="badge b-hotel"><i class="ti ti-bed" style="font-size:11px;margin-right:3px"></i>${esc((e.desc||'Hotel').substring(0,28))}</span>`).join('');
+    const evHtml=evs.length?evs.filter(ev=>ev&&ev.type).map((ev,ei)=>`
       <div class="ev">
         <i class="ti ${TI[ev.type]||'ti-notes'} ev-icon ic-${ev.type}"></i>
         <div class="ev-body">
