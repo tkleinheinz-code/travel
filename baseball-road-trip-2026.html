@@ -241,7 +241,7 @@ body{font-family:var(--font-b);background:var(--bg);min-height:100vh;color:var(-
 </div>
 
 <script>
-const TI={baseball:'ti-trophy',flight:'ti-plane',drive:'ti-car',hotel:'ti-bed',food:'ti-fork-knife',sightseeing:'ti-binoculars',other:'ti-notes'};
+const TI={baseball:'ti-ball-baseball',flight:'ti-plane',drive:'ti-car',hotel:'ti-bed',food:'ti-fork-knife',sightseeing:'ti-binoculars',other:'ti-notes'};
 const TL={baseball:'Game',flight:'Flight',drive:'Drive',hotel:'Hotel',food:'Food/Bar',sightseeing:'Sightseeing',other:'Other'};
 
 let S={
@@ -353,6 +353,7 @@ function renderDays(){
           ${ev.time?`<div class="ev-time">${fmtTime(ev.time)}</div>`:''}
           <div class="ev-desc">${esc(ev.desc||'')}</div>
           ${ev.type==='drive'&&ev.drive&&(ev.drive.start||ev.drive.miles)?`<div class="ev-note">${[ev.drive.start&&ev.drive.end?esc(ev.drive.start)+' → '+esc(ev.drive.end):'',ev.drive.miles?esc(ev.drive.miles)+' mi':'',ev.drive.travelTime?esc(ev.drive.travelTime):''].filter(Boolean).join(' · ')}</div>`:''}
+          ${ev.type==='flight'&&ev.flight?`<div class="ev-note">${[ev.flight.airline?esc(ev.flight.airline):'',ev.flight.departCity&&ev.flight.arrivalCity?esc(ev.flight.departCity)+' → '+esc(ev.flight.arrivalCity):'',ev.flight.connectionCity?'via '+esc(ev.flight.connectionCity):''].filter(Boolean).join(' · ')}</div>`:''}
           ${ev.note?`<div class="ev-note">${esc(ev.note)}</div>`:''}
         </div>
         ${ev.cost?`<div class="ev-cost">${money(ev.cost)}</div>`:''}
@@ -446,11 +447,16 @@ function openEvModal(di,ei){
   const ev=ei!=null?S.days[di].events[ei]:{};
   S._selType=ev.type||'other';
   const dr=ev.drive||{};
+  const fl=ev.flight||{};
   // Seed state so renderEvFields has values on first render
   S._evDesc=ev.desc||''; S._evNote=ev.note||'';
   S._evTime=ev.time||''; S._evCost=ev.cost!=null?String(ev.cost):'';
   S._evDstart=dr.start||''; S._evDend=dr.end||'';
   S._evDmiles=dr.miles!=null?String(dr.miles):''; S._evDtime=dr.travelTime||'';
+  S._evFairline=fl.airline||''; S._evFdepart=fl.departCity||'';
+  S._evFconnect=fl.connectionCity||''; S._evFarrive=fl.arrivalCity||'';
+  S._evFconnArr=fl.connectionArrival||''; S._evFconnDep=fl.connectionDeparture||'';
+  S._evFarrTime=fl.arrivalTime||'';
   $('modal-title').textContent=ei!=null?'Edit event':'Add event';
   const types=['baseball','flight','drive','hotel','food','sightseeing','other'];
   $('modal-body').innerHTML=`
@@ -484,11 +490,31 @@ function renderEvFields(){
   const curDend=document.getElementById('f-dend')?.value||S._evDend||'';
   const curDmiles=document.getElementById('f-dmiles')?.value||S._evDmiles||'';
   const curDtime=document.getElementById('f-dtime')?.value||S._evDtime||'';
+  const curFairline=document.getElementById('f-fairline')?.value||S._evFairline||'';
+  const curFdepart=document.getElementById('f-fdepart')?.value||S._evFdepart||'';
+  const curFconnect=document.getElementById('f-fconnect')?.value||S._evFconnect||'';
+  const curFarrive=document.getElementById('f-farrive')?.value||S._evFarrive||'';
+  const curFconnArr=document.getElementById('f-fconnarr')?.value||S._evFconnArr||'';
+  const curFconnDep=document.getElementById('f-fconndep')?.value||S._evFconnDep||'';
+  const curFarrTime=document.getElementById('f-farrtime')?.value||S._evFarrTime||'';
   // Labels per type
-  const timeLabel=t==='baseball'?'Game time':'Time';
+  const timeLabel=t==='baseball'?'Game time':t==='flight'?'Departure time':'Time';
   const descLabel=t==='baseball'?'Teams playing':t==='hotel'?'Hotel name':'Description';
   const descPlaceholder=t==='baseball'?'Yankees vs Red Sox · Yankee Stadium':t==='hotel'?'Marriott Downtown':'Description';
   const driveFirst=t==='drive';
+  const flightBlock=t==='flight'?`
+    <div style="border-top:.5px solid var(--border);margin:4px 0 12px"></div>
+    <div class="sub-lbl" style="margin-bottom:10px">Flight details</div>
+    <div class="form-row">
+      <div class="form-g full"><label>Airline</label><input type="text" id="f-fairline" placeholder="United, Delta, Southwest…" value="${curFairline}"></div>
+      <div class="form-g"><label>Departure city</label><input type="text" id="f-fdepart" placeholder="San Francisco (SFO)" value="${curFdepart}"></div>
+      <div class="form-g"><label>Arrival city</label><input type="text" id="f-farrive" placeholder="New York (EWR)" value="${curFarrive}"></div>
+      <div class="form-g"><label>Arrival time</label><input type="time" id="f-farrtime" value="${curFarrTime}"></div>
+      <div class="form-g"><label>Connection city</label><input type="text" id="f-fconnect" placeholder="Chicago (ORD) — leave blank if direct" value="${curFconnect}"></div>
+      <div class="form-g"><label>Connection arrival</label><input type="time" id="f-fconnarr" value="${curFconnArr}"></div>
+      <div class="form-g"><label>Connection departure</label><input type="time" id="f-fconndep" value="${curFconnDep}"></div>
+    </div>`
+  :'';
   const driveBlock=`
     <div style="border-top:.5px solid var(--border);margin:4px 0 12px"></div>
     <div class="sub-lbl" style="margin-bottom:10px">Drive details</div>
@@ -505,7 +531,7 @@ function renderEvFields(){
       <div class="form-g full"><label>${descLabel}</label><input type="text" id="f-edesc" placeholder="${descPlaceholder}" value="${curDesc}"></div>
       <div class="form-g full"><label>Notes / confirmation #</label><input type="text" id="f-enote" placeholder="Conf: XXXXX · Section 203 Row 5" value="${curNote}"></div>
     </div>`;
-  wrap.innerHTML=driveFirst?(driveBlock+mainBlock):mainBlock+(t==='drive'?driveBlock:'');
+  wrap.innerHTML=driveFirst?(driveBlock+mainBlock):mainBlock+(t==='drive'?driveBlock:'')+flightBlock;
 }
 
 function openModal(){
@@ -539,7 +565,16 @@ function saveModal(){
       miles:$('f-dmiles')?.value||'',
       travelTime:$('f-dtime')?.value||''
     }:null;
-    const ev={type:S._selType,time,desc,note,cost:cost?parseFloat(cost):'',drive:driveData};
+    const flightData=S._selType==='flight'?{
+      airline:$('f-fairline')?.value||'',
+      departCity:$('f-fdepart')?.value||'',
+      arrivalCity:$('f-farrive')?.value||'',
+      arrivalTime:$('f-farrtime')?.value||'',
+      connectionCity:$('f-fconnect')?.value||'',
+      connectionArrival:$('f-fconnarr')?.value||'',
+      connectionDeparture:$('f-fconndep')?.value||''
+    }:null;
+    const ev={type:S._selType,time,desc,note,cost:cost?parseFloat(cost):'',drive:driveData,flight:flightData};
     if(S._evTarget!=null){
       S.days[di].events[S._evTarget]=ev;
     } else {
