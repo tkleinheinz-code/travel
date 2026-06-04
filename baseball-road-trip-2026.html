@@ -422,33 +422,21 @@ function openDayModal(di){
   S._mode='day';S._target=di!=null?di:null;
   const day=di!=null?S.days[di]:{};
   $('modal-title').textContent=di!=null?'Edit day':'Add day';
-  const fl=day.flight||{};
+  // Auto-suggest next date when adding a new day
+  let autoDate=day.date||'';
+  if(!autoDate && S._target==null && S.days.length>0){
+    const dates=S.days.map(d=>d.date).filter(Boolean).sort();
+    if(dates.length){
+      const last=new Date(dates[dates.length-1]+'T12:00:00');
+      last.setDate(last.getDate()+1);
+      autoDate=last.toISOString().slice(0,10);
+    }
+  }
   $('modal-body').innerHTML=`
     <div class="form-row">
-      <div class="form-g"><label>Date</label><input type="date" id="f-date" value="${day.date||''}"></div>
+      <div class="form-g"><label>Date</label><input type="date" id="f-date" value="${autoDate}"></div>
       <div class="form-g"><label>City / location</label><input type="text" id="f-city" placeholder="New York, NY" value="${esc(day.city||'')}"></div>
       <div class="form-g full"><label>Day notes</label><textarea id="f-dnotes" placeholder="Notes for this day...">${esc(day.notes||'')}</textarea></div>
-    </div>
-    <div style="border-top:.5px solid var(--border);margin:12px 0 10px"></div>
-    <div class="sub-lbl" style="margin-bottom:10px">Flight</div>
-    <div class="form-row">
-      <div class="form-g"><label>Airline</label><input type="text" id="f-fairline" placeholder="United, Southwest…" value="${esc(fl.airline||'')}"></div>
-      <div class="form-g"><label>Flight number</label><input type="text" id="f-fnum" placeholder="UA 2416" value="${esc(fl.number||'')}"></div>
-      <div class="form-g"><label>Leaving from (airport)</label><input type="text" id="f-ffrom" placeholder="SFO" value="${esc(fl.from||'')}"></div>
-      <div class="form-g"><label>Arriving to (airport)</label><input type="text" id="f-fto" placeholder="EWR" value="${esc(fl.to||'')}"></div>
-      <div class="form-g"><label>Takeoff time</label><input type="time" id="f-fdepart" value="${fl.depart||''}"></div>
-      <div class="form-g"><label>Landing time</label><input type="time" id="f-farrive" value="${fl.arrive||''}"></div>
-      <div class="form-g"><label>Connection city</label><input type="text" id="f-fconnect" placeholder="ORD (leave blank if direct)" value="${esc(fl.connection||'')}"></div>
-      <div class="form-g"><label>Layover duration</label><input type="text" id="f-flayover" placeholder="1h 45m" value="${esc(fl.layover||'')}"></div>
-      <div class="form-g full"><label>Confirmation #</label><input type="text" id="f-fconf" placeholder="GMMPRV" value="${esc(fl.conf||'')}"></div>
-    </div>
-    <div style="border-top:.5px solid var(--border);margin:12px 0 10px"></div>
-    <div class="sub-lbl" style="margin-bottom:10px">Lodging</div>
-    <div class="form-row">
-      <div class="form-g full"><label>Hotel / accommodation</label><input type="text" id="f-lname" placeholder="Marriott Downtown" value="${esc(day.lodging?.name||'')}"></div>
-      <div class="form-g"><label>Confirmation #</label><input type="text" id="f-lconf" placeholder="ABC12345" value="${esc(day.lodging?.conf||'')}"></div>
-      <div class="form-g"><label>Cost ($)</label><input type="number" id="f-lcost" placeholder="0" value="${day.lodging?.cost||''}"></div>
-      <div class="form-g full"><label>Notes (parking, pool, credits…)</label><input type="text" id="f-lnote" placeholder="Parking $35. Pool included." value="${esc(day.lodging?.note||'')}"></div>
     </div>`;
   openModal();
 }
@@ -532,25 +520,10 @@ function saveModal(){
     const date=$('f-date')?.value||'';
     const city=$('f-city')?.value||'';
     const notes=$('f-dnotes')?.value||'';
-    const lname=$('f-lname')?.value||'';
-    const lconf=$('f-lconf')?.value||'';
-    const lcost=$('f-lcost')?.value||'';
-    const lnote=$('f-lnote')?.value||'';
-    const lodging=lname?{name:lname,conf:lconf,cost:lcost?parseFloat(lcost):'',note:lnote}:null;
-    const fairline=$('f-fairline')?.value||'';
-    const fnum=$('f-fnum')?.value||'';
-    const ffrom=$('f-ffrom')?.value||'';
-    const fto=$('f-fto')?.value||'';
-    const fdepart=$('f-fdepart')?.value||'';
-    const farrive=$('f-farrive')?.value||'';
-    const fconnect=$('f-fconnect')?.value||'';
-    const flayover=$('f-flayover')?.value||'';
-    const fconf=$('f-fconf')?.value||'';
-    const flight=(fairline||fnum||ffrom||fto)?{airline:fairline,number:fnum,from:ffrom,to:fto,depart:fdepart,arrive:farrive,connection:fconnect,layover:flayover,conf:fconf}:null;
     if(S._target!=null){
-      Object.assign(S.days[S._target],{date,city,notes,lodging,flight});
+      Object.assign(S.days[S._target],{date,city,notes});
     } else {
-      S.days.push({date,city,notes,lodging,flight,events:[],_open:true});
+      S.days.push({date,city,notes,events:[],_open:true});
       S.days.sort((a,b)=>(a.date||'zzzz')>(b.date||'zzzz')?1:-1);
     }
   } else if(S._mode==='event'){
