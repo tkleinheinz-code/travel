@@ -482,6 +482,7 @@ function renderDays(){
           ${ev.type==='drive'&&ev.drive&&(ev.drive.start||ev.drive.miles)?`<div class="ev-note">${[ev.drive.start&&ev.drive.end?esc(ev.drive.start)+' → '+esc(ev.drive.end):'',ev.drive.miles?esc(ev.drive.miles)+' mi':'',ev.drive.travelTime?esc(ev.drive.travelTime):''].filter(Boolean).join(' · ')}</div>`:''}
           ${ev.type==='flight'&&ev.flight?`<div class="ev-note">${[ev.flight.airline?esc(ev.flight.airline):'',ev.flight.departCity&&ev.flight.arrivalCity?esc(ev.flight.departCity)+' → '+esc(ev.flight.arrivalCity):'',ev.flight.connectionCity?'via '+esc(ev.flight.connectionCity):''].filter(Boolean).join(' · ')}</div>`:''}
           ${ev.note?`<div class="ev-note">${esc(ev.note)}</div>`:''}
+          ${ev.url?`<div class="ev-note"><a href="${esc(ev.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--green);text-decoration:none;font-family:var(--font-m);font-size:11px;"><i class="ti ti-external-link" style="font-size:11px;margin-right:3px"></i>${esc(ev.url.replace(/^https?:\/\//,'').split('/')[0])}</a></div>`:''}
         </div>
         ${ev.cost?`<div class="ev-cost">${money(ev.cost)}</div>`:''}
         <div class="ev-actions">
@@ -562,7 +563,7 @@ window.openEvModal=function(di,ei){
   const ev=ei!=null?S.days[di].events[ei]:{};
   S._selType=ev.type||'other';
   const dr=ev.drive||{};const fl=ev.flight||{};
-  S._evDesc=ev.desc||'';S._evNote=ev.note||'';S._evTime=ev.time||'';S._evCost=ev.cost!=null?String(ev.cost):'';
+  S._evDesc=ev.desc||'';S._evNote=ev.note||'';S._evTime=ev.time||'';S._evCost=ev.cost!=null?String(ev.cost):'';S._evUrl=ev.url||'';
   S._evDstart=dr.start||'';S._evDend=dr.end||'';S._evDmiles=dr.miles!=null?String(dr.miles):'';S._evDtime=dr.travelTime||'';
   S._evFairline=fl.airline||'';S._evFdepart=fl.departCity||'';S._evFconnect=fl.connectionCity||'';S._evFarrive=fl.arrivalCity||'';
   S._evFconnArr=fl.connectionArrival||'';S._evFconnDep=fl.connectionDeparture||'';S._evFarrTime=fl.arrivalTime||'';
@@ -588,6 +589,7 @@ function renderEvFields(){
   const t=S._selType;
   const curDesc=document.getElementById('f-edesc')?.value||S._evDesc||'';
   const curNote=document.getElementById('f-enote')?.value||S._evNote||'';
+  const curUrl=document.getElementById('f-eurl')?.value||S._evUrl||'';
   const curTime=document.getElementById('f-etime')?.value||S._evTime||'';
   const curCost=document.getElementById('f-ecost')?.value||S._evCost||'';
   const curDstart=document.getElementById('f-dstart')?.value||S._evDstart||'';
@@ -644,6 +646,7 @@ function renderEvFields(){
       <div class="form-g"><label>Cost ($)</label><input type="number" id="f-ecost" placeholder="0" value="${curCost}"></div>
       <div class="form-g full"><label>${descLabel}</label><input type="text" id="f-edesc" placeholder="${descPlaceholder}" value="${curDesc}"></div>
       <div class="form-g full"><label>${t==='hotel'?'Notes':'Notes / confirmation #'}</label><input type="text" id="f-enote" placeholder="${t==='hotel'?'Special requests, parking, etc.':'Conf: XXXXX · Section 203 Row 5'}" value="${curNote}"></div>
+      <div class="form-g full"><label>URL / link</label><input type="url" id="f-eurl" placeholder="https://www.mlb.com/mets/tickets" value="${curUrl}"></div>
     </div>`;
   const driveFirst=t==='drive';
   wrap.innerHTML=driveFirst?(driveBlock+mainBlock):mainBlock+(t==='drive'?driveBlock:'')+flightBlock+hotelBlock;
@@ -671,6 +674,7 @@ window.saveModal=function(){
     const time=$('f-etime')?.value||'';
     const desc=$('f-edesc')?.value||'';
     const note=$('f-enote')?.value||'';
+    const url=$('f-eurl')?.value||'';
     const cost=$('f-ecost')?.value||'';
     if(!desc){alert('Please enter a description.');return;}
     const driveData=S._selType==='drive'?{start:$('f-dstart')?.value||'',end:$('f-dend')?.value||'',miles:$('f-dmiles')?.value||'',travelTime:$('f-dtime')?.value||''}:null;
@@ -678,7 +682,7 @@ window.saveModal=function(){
     const hotelAddr=S._selType==='hotel'?$('f-haddr')?.value||'':'';
     const hotelConf=S._selType==='hotel'?$('f-hconf')?.value||'':'';
     const hotelPhone=S._selType==='hotel'?$('f-hphone')?.value||'':'';
-    const ev={type:S._selType,time,desc,note,cost:cost?parseFloat(cost):'',drive:driveData,flight:flightData,hotelAddr,hotelConf,hotelPhone};
+    const ev={type:S._selType,time,desc,note,url,cost:cost?parseFloat(cost):'',drive:driveData,flight:flightData,hotelAddr,hotelConf,hotelPhone};
     if(S._evTarget!=null){S.days[di].events[S._evTarget]=ev;}
     else{S.days[di].events.push(ev);}
     S.days[di].events.sort((a,b)=>(a.time||'99:99')>(b.time||'99:99')?1:-1);
