@@ -259,6 +259,7 @@ body{font-family:var(--font-b);background:var(--bg);min-height:100vh;color:var(-
   <button class="tab on" onclick="tab('itinerary',this)"><i class="ti ti-calendar-event"></i>Itinerary</button>
   <button class="tab" onclick="tab('setup',this)"><i class="ti ti-settings"></i>Trip setup</button>
   <button class="tab" onclick="tab('hotels',this)"><i class="ti ti-building"></i>Hotels</button>
+  <button class="tab" onclick="tab('map',this)"><i class="ti ti-map-2"></i>Route Map</button>
 </div>
 
 <div id="pane-itinerary" class="pane on">
@@ -295,6 +296,22 @@ body{font-family:var(--font-b);background:var(--bg);min-height:100vh;color:var(-
   <div class="sec-hd">Hotels</div>
   <div id="hotels-list"></div>
 </div>
+<div id="pane-map" class="pane">
+  <div class="sec-hd" style="margin-bottom:.5rem">Route map</div>
+  <div style="font-family:var(--font-m);font-size:11px;color:var(--text2);margin-bottom:1rem">Tap any stop for details · ✈ flight · 🚗 drive</div>
+  <div id="map-container" style="background:var(--bg2);border:.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;position:relative">
+    <svg id="route-svg" width="100%" style="display:block"></svg>
+    <div id="map-empty" class="empty" style="display:none"><i class="ti ti-map-off"></i>Add days with cities to see your route.</div>
+  </div>
+  <div id="map-legend" style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-family:var(--font-m);font-size:11px;color:var(--text2)">
+    <span><svg width="28" height="10" style="vertical-align:middle"><line x1="0" y1="5" x2="28" y2="5" stroke="#185FA5" stroke-width="2" stroke-dasharray="5,3"/></svg> Flight</span>
+    <span><svg width="28" height="10" style="vertical-align:middle"><line x1="0" y1="5" x2="28" y2="5" stroke="#854F0B" stroke-width="2"/></svg> Drive</span>
+    <span><svg width="28" height="10" style="vertical-align:middle"><circle cx="14" cy="5" r="4" fill="var(--red)"/></svg> Game day</span>
+    <span><svg width="28" height="10" style="vertical-align:middle"><circle cx="14" cy="5" r="4" fill="var(--green)"/></svg> Other</span>
+  </div>
+  <div id="map-tooltip" style="display:none;position:fixed;background:var(--bg2);border:.5px solid var(--border2);border-radius:var(--radius);padding:10px 14px;font-size:13px;color:var(--text);box-shadow:0 4px 20px rgba(0,0,0,.15);z-index:50;max-width:260px;pointer-events:none"></div>
+</div>
+
 </div><!-- /app -->
 
 <div class="modal-overlay" id="modal-overlay" onclick="mOverlay(event)">
@@ -565,6 +582,7 @@ window.tab=function(id,btn){
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
   $('pane-'+id).classList.add('on');btn.classList.add('on');
   if(id==='hotels')renderHotels();
+  if(id==='map')renderMap();
 }
 
 function renderAll(){updateStats();renderDays();}
@@ -881,6 +899,144 @@ window.importJSON=function(inp){
   };
   r.readAsText(f);
 }
+
+
+// ── Map ───────────────────────────────────────────────────────
+function renderMap(){
+  const svg=document.getElementById('route-svg');
+  const empty=document.getElementById('map-empty');
+  const tip=document.getElementById('map-tooltip');
+  if(!svg)return;
+
+  // Gather stops: unique cities with their day data
+  const stops=[];
+  S.days.forEach((day,di)=>{
+    if(!day.city)return;
+    const prev=stops[stops.length-1];
+    const hasGame=(day.events||[]).some(e=>e&&e.type==='baseball');
+    const hasFlight=(day.events||[]).some(e=>e&&e.type==='flight') || (day.flight&&(day.flight.airline||day.flight.number));
+    const hasDrive=(day.events||[]).some(e=>e&&e.type==='drive');
+    // Determine leg type from THIS day to next
+    const legType=hasFlight?'flight':hasDrive?'drive':'drive';
+    if(prev && prev.city===day.city){
+      // same city, just accumulate
+      if(hasGame)prev.hasGame=true;
+      return;
+    }
+    stops.push({city:day.city,date:day.date,hasGame,legType,dayIndex:di,notes:day.notes,events:day.events||[]});
+  });
+
+  if(stops.length<1){
+    svg.style.display='none';
+    empty.style.display='block';
+    return;
+  }
+  svg.style.display='block';
+  empty.style.display='none';
+
+  const W=svg.parentElement.clientWidth||360;
+  const PAD=48, STOP_R=18, LABEL_H=52;
+  const cols=Math.min(stops.length,5);
+  const rows=Math.ceil(stops.length/cols);
+  const cellW=(W-PAD*2)/cols;
+  const cellH=120;
+  const H=rows*cellH+LABEL_H+40;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.setAttribute('height',H);
+
+  // Position each stop in a snake/grid layout
+  const pts=stops.map((s,i)=>{
+    const row=Math.floor(i/cols);
+    const col=row%2===0?i%cols:(cols-1-i%cols); // snake
+    const x=PAD+col*cellW+cellW/2;
+    const y=PAD+row*cellH+STOP_R+10;
+    return{x,y,...s};
+  });
+
+  let svgHtml='';
+
+  // Draw legs
+  for(let i=0;i<pts.length-1;i++){
+    const a=pts[i],b=pts[i+1];
+    const isRow=Math.floor(i/cols)===Math.floor((i+1)/cols);
+    if(a.legType==='flight'){
+      // dashed blue arc
+      const mx=(a.x+b.x)/2, my=Math.min(a.y,b.y)-28;
+      svgHtml+=`<path d="M${a.x},${a.y} Q${mx},${my} ${b.x},${b.y}" fill="none" stroke="#185FA5" stroke-width="2.5" stroke-dasharray="7,4" stroke-linecap="round" opacity=".8"/>`;
+      // animated plane
+      svgHtml+=`<text font-size="16" text-anchor="middle">
+        <animateMotion dur="${1.8+i*0.3}s" repeatCount="indefinite" rotate="auto">
+          <mpath href="#leg-path-${i}"/>
+        </animateMotion>✈</text>
+        <path id="leg-path-${i}" d="M${a.x},${a.y} Q${mx},${my} ${b.x},${b.y}" fill="none" style="display:none"/>`;
+    } else {
+      // solid amber drive line
+      svgHtml+=`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#b45309" stroke-width="2.5" stroke-linecap="round" opacity=".8"/>`;
+      // animated car dot
+      const dur=(1.6+i*0.25)+'s';
+      svgHtml+=`<circle r="5" fill="#b45309" opacity=".9">
+        <animateMotion dur="${dur}" repeatCount="indefinite">
+          <mpath href="#drive-path-${i}"/>
+        </animateMotion>
+      </circle>
+      <path id="drive-path-${i}" d="M${a.x},${a.y} L${b.x},${b.y}" fill="none" style="display:none"/>`;
+    }
+  }
+
+  // Draw stop circles + labels
+  pts.forEach((p,i)=>{
+    const fill=p.hasGame?'var(--red)':'var(--green)';
+    const short=p.city.split(',')[0].trim().substring(0,12);
+    const dateStr=p.date?fmtDate(p.date,'short'):'';
+    // Pulse ring for game days
+    if(p.hasGame){
+      svgHtml+=`<circle cx="${p.x}" cy="${p.y}" r="${STOP_R+4}" fill="none" stroke="var(--red)" stroke-width="1.5" opacity=".3">
+        <animate attributeName="r" values="${STOP_R+2};${STOP_R+9};${STOP_R+2}" dur="2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values=".4;0;.4" dur="2s" repeatCount="indefinite"/>
+      </circle>`;
+    }
+    svgHtml+=`<g class="map-stop" style="cursor:pointer" data-idx="${i}">
+      <circle cx="${p.x}" cy="${p.y}" r="${STOP_R}" fill="${fill}" stroke="#fff" stroke-width="2.5" filter="drop-shadow(0 2px 4px rgba(0,0,0,.18))"/>
+      <text x="${p.x}" y="${p.y+1}" text-anchor="middle" dominant-baseline="middle" fill="#fff" font-family="var(--font-d)" font-size="11" letter-spacing=".03em">${i+1}</text>
+      <text x="${p.x}" y="${p.y+STOP_R+12}" text-anchor="middle" fill="var(--text)" font-family="var(--font-b)" font-size="11" font-weight="500">${esc(short)}</text>
+      <text x="${p.x}" y="${p.y+STOP_R+24}" text-anchor="middle" fill="var(--text2)" font-family="var(--font-m)" font-size="9" letter-spacing=".04em">${esc(dateStr)}</text>
+    </g>`;
+  });
+
+  svg.innerHTML=svgHtml;
+
+  // Tooltip on stop click
+  svg.querySelectorAll('.map-stop').forEach(el=>{
+    el.addEventListener('click',ev=>{
+      const idx=+el.dataset.idx;
+      const p=pts[idx];
+      const games=p.events.filter(e=>e&&e.type==='baseball');
+      const gameList=games.map(e=>`<div style="margin-top:4px;color:var(--red)">⚾ ${esc(e.desc||'')}</div>`).join('');
+      const hotels=p.events.filter(e=>e&&e.type==='hotel');
+      const hotelList=hotels.map(e=>`<div style="margin-top:3px;color:var(--green-mid)">🏨 ${esc(e.desc||'')}</div>`).join('');
+      tip.innerHTML=`<div style="font-weight:500;font-size:14px;color:var(--text)">${esc(p.city)}</div>
+        <div style="font-family:var(--font-m);font-size:10px;color:var(--text2);margin-top:2px">${esc(p.date?fmtDate(p.date,'short'):'')}</div>
+        ${gameList}${hotelList}
+        ${!games.length&&!hotels.length?'<div style="margin-top:4px;color:var(--text2);font-size:12px">No game or hotel events</div>':''}`;
+      const rect=el.closest('svg').getBoundingClientRect();
+      const cx=parseFloat(el.querySelector('circle').getAttribute('cx'));
+      const cy=parseFloat(el.querySelector('circle').getAttribute('cy'));
+      const svgW=rect.width, svgH=rect.height;
+      const viewW=parseFloat(svg.getAttribute('viewBox').split(' ')[2])||W;
+      const viewH=parseFloat(svg.getAttribute('viewBox').split(' ')[3])||H;
+      const scaleX=rect.width/viewW, scaleY=rect.height/viewH;
+      let tx=rect.left+cx*scaleX+10;
+      let ty=rect.top+cy*scaleY+10;
+      if(tx+270>window.innerWidth)tx=rect.left+cx*scaleX-280;
+      tip.style.left=tx+'px';
+      tip.style.top=ty+'px';
+      tip.style.display='block';
+      ev.stopPropagation();
+    });
+  });
+  document.addEventListener('click',()=>{tip.style.display='none';},{once:true});
+}
+window.renderMap=renderMap;
 
 // ── Boot ──────────────────────────────────────────────────────
 const BAKED_CONFIG = {
