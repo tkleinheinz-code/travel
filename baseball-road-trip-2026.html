@@ -1004,7 +1004,7 @@ function renderMap(){
       const legLabel=legFlight?'Flight':legTrain?'Train':'Drive';
       html+=`<div style="display:flex;align-items:center;gap:8px;padding:6px 0 6px 0;margin-bottom:0">
         <div style="flex:1;height:1px;background:${legColor};opacity:.3;margin-left:-21px"></div>
-        <span style="font-family:var(--font-m);font-size:10px;color:${legColor};background:${legFlight?'#dbeafe':'#fef3c7'};padding:3px 10px;border-radius:12px;border:.5px solid ${legColor}30;white-space:nowrap">${legIcon} ${legLabel}</span>
+        <span style="font-family:var(--font-m);font-size:10px;color:${legColor};background:${legFlight?'#dbeafe':legTrain?'#ede9fe':'#fef3c7'};padding:3px 10px;border-radius:12px;border:.5px solid ${legColor}30;white-space:nowrap">${legIcon} ${legLabel}</span>
         <div style="flex:1;height:1px;background:${legColor};opacity:.3"></div>
       </div>`;
     }
