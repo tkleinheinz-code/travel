@@ -902,107 +902,99 @@ window.importJSON=function(inp){
 
 
 // ── Map ───────────────────────────────────────────────────────
-// ── City coordinates (lon/lat for Albers projection) ─────────
-const CITY_COORDS={
-  // Major US cities — name matching is case-insensitive, partial
-  'new york':[-74.006,40.7128],'new york city':[-74.006,40.7128],'nyc':[-74.006,40.7128],
-  'los angeles':[-118.2437,34.0522],'la':[-118.2437,34.0522],
-  'chicago':[-87.6298,41.8781],
-  'houston':[-95.3698,29.7604],
-  'phoenix':[-112.074,33.4484],
-  'philadelphia':[-75.1652,39.9526],'philly':[-75.1652,39.9526],
-  'san antonio':[-98.4936,29.4241],
-  'san diego':[-117.1611,32.7157],
-  'dallas':[-96.7970,32.7767],
-  'san jose':[-121.8863,37.3382],
-  'austin':[-97.7431,30.2672],
-  'jacksonville':[-81.6557,30.3322],
-  'fort worth':[-97.3308,32.7555],
-  'columbus':[-82.9988,39.9612],
-  'charlotte':[-80.8431,35.2271],
-  'indianapolis':[-86.1581,39.7684],
-  'san francisco':[-122.4194,37.7749],'sf':[-122.4194,37.7749],
-  'seattle':[-122.3321,47.6062],
-  'denver':[-104.9903,39.7392],
-  'nashville':[-86.7816,36.1627],
-  'oklahoma city':[-97.5164,35.4676],
-  'el paso':[-106.4850,31.7619],
-  'washington':[-77.0369,38.9072],'washington dc':[-77.0369,38.9072],'dc':[-77.0369,38.9072],
-  'boston':[-71.0589,42.3601],
-  'las vegas':[-115.1398,36.1699],
-  'memphis':[-90.0490,35.1495],
-  'louisville':[-85.7585,38.2527],
-  'portland':[-122.6765,45.5231],
-  'baltimore':[-76.6122,39.2904],
-  'milwaukee':[-87.9065,43.0389],
-  'albuquerque':[-106.6504,35.0844],
-  'tucson':[-110.9265,32.2226],
-  'fresno':[-119.7871,36.7378],
-  'sacramento':[-121.4944,38.5816],
-  'mesa':[-111.8315,33.4152],
-  'kansas city':[-94.5786,39.0997],
-  'atlanta':[-84.3880,33.7490],
-  'omaha':[-95.9345,41.2565],
-  'colorado springs':[-104.8214,38.8339],
-  'raleigh':[-78.6382,35.7796],
-  'long beach':[-118.1937,33.7701],
-  'virginia beach':[-75.9779,36.8529],
-  'minneapolis':[-93.2650,44.9778],
-  'tampa':[-82.4572,27.9506],
-  'miami':[-80.1918,25.7617],
-  'cleveland':[-81.6944,41.4993],
-  'pittsburgh':[-79.9959,40.4406],
-  'cincinnati':[-84.5120,39.1031],
-  'detroit':[-83.0458,42.3314],
-  'st. louis':[-90.1994,38.6270],'st louis':[-90.1994,38.6270],
-  'new orleans':[-90.0715,29.9511],
-  'minneapolis':[-93.2650,44.9778],
-  'buffalo':[-78.8784,42.8864],
-  'rochester':[-77.6109,43.1566],
-  'hartford':[-72.6851,41.7658],
-  'providence':[-71.4128,41.8240],
-  'richmond':[-77.4360,37.5407],
-  'norfolk':[-76.2859,36.8508],
-  'orlando':[-81.3792,28.5383],
-  'jacksonville':[-81.6557,30.3322],
-  'salt lake city':[-111.8910,40.7608],
-  'boise':[-116.2023,43.6150],
-  'spokane':[-117.4260,47.6588],
-  'anchorage':[-149.9003,61.2181],
-  'honolulu':[-157.8583,21.3069],
+// ── City lookup table (lon, lat) ──────────────────────────────
+const CITY_LL={
+  'new york':[-74.006,40.713],'new york city':[-74.006,40.713],'nyc':[-74.006,40.713],'manhattan':[-74.006,40.713],
+  'los angeles':[-118.244,34.052],'la':[-118.244,34.052],
+  'chicago':[-87.630,41.878],
+  'houston':[-95.370,29.760],
+  'phoenix':[-112.074,33.448],
+  'philadelphia':[-75.165,39.953],'philly':[-75.165,39.953],
+  'san antonio':[-98.494,29.424],
+  'san diego':[-117.161,32.716],
+  'dallas':[-96.797,32.777],
+  'san jose':[-121.886,37.338],
+  'austin':[-97.743,30.267],
+  'jacksonville':[-81.656,30.332],
+  'san francisco':[-122.419,37.775],'sf':[-122.419,37.775],
+  'seattle':[-122.332,47.606],
+  'denver':[-104.990,39.739],
+  'nashville':[-86.782,36.163],
+  'washington':[-77.037,38.907],'washington dc':[-77.037,38.907],'dc':[-77.037,38.907],
+  'boston':[-71.059,42.360],
+  'las vegas':[-115.140,36.170],
+  'memphis':[-90.049,35.150],
+  'louisville':[-85.759,38.253],
+  'portland':[-122.677,45.523],
+  'baltimore':[-76.612,39.290],
+  'milwaukee':[-87.907,43.039],
+  'kansas city':[-94.579,39.100],
+  'atlanta':[-84.388,33.749],
+  'omaha':[-95.934,41.257],
+  'raleigh':[-78.638,35.780],
+  'tampa':[-82.457,27.951],
+  'miami':[-80.192,25.762],
+  'cleveland':[-81.694,41.499],
+  'pittsburgh':[-79.996,40.441],
+  'cincinnati':[-84.512,39.103],
+  'detroit':[-83.046,42.331],
+  'st. louis':[-90.199,38.627],'st louis':[-90.199,38.627],
+  'new orleans':[-90.072,29.951],
+  'minneapolis':[-93.265,44.978],
+  'buffalo':[-78.878,42.886],
+  'salt lake city':[-111.891,40.761],
+  'orlando':[-81.379,28.538],
+  'charlotte':[-80.843,35.227],
+  'indianapolis':[-86.158,39.768],
+  'columbus':[-82.999,39.961],
+  'richmond':[-77.436,37.541],
 };
 
-function cityToCoords(cityStr){
-  if(!cityStr)return null;
-  const key=cityStr.toLowerCase().split(',')[0].trim();
-  // exact match
-  if(CITY_COORDS[key])return CITY_COORDS[key];
-  // partial match
-  for(const k of Object.keys(CITY_COORDS)){
-    if(key.includes(k)||k.includes(key))return CITY_COORDS[k];
-  }
+function cityLL(str){
+  if(!str)return null;
+  const k=str.toLowerCase().split(',')[0].trim();
+  if(CITY_LL[k])return CITY_LL[k];
+  for(const c of Object.keys(CITY_LL)){if(k.includes(c)||c.includes(k))return CITY_LL[c];}
   return null;
 }
 
-// Albers USA projection (simplified — maps lon/lat to x/y on 960x600 viewbox)
-function albersUSA(lon,lat){
-  // Lower 48 Albers parameters
-  const DEG=Math.PI/180;
-  const phi1=29.5*DEG, phi2=45.5*DEG, phi0=37.5*DEG, lam0=-96*DEG;
-  const n=(Math.sin(phi1)+Math.sin(phi2))/2;
-  const C=Math.cos(phi1)*Math.cos(phi1)+2*n*Math.sin(phi1);
-  const r0=Math.sqrt(C-2*n*Math.sin(phi0))/n;
-  const lam=lon*DEG, phi=lat*DEG;
-  const r=Math.sqrt(C-2*n*Math.sin(phi))/n;
-  const theta=n*(lam-lam0);
-  const x=r*Math.sin(theta);
-  const y=r0-r*Math.cos(theta);
-  // Scale to fit 960x600 canvas (tweaked constants)
-  return [x*1000+480, 600-(y*1000-100)];
+// Albers Equal-Area Conic — standard US params, output in 960x600 space
+function albers(lon,lat){
+  const D=Math.PI/180;
+  const φ1=29.5*D,φ2=45.5*D,φ0=37.5*D,λ0=-96*D;
+  const n=(Math.sin(φ1)+Math.sin(φ2))/2;
+  const C=Math.cos(φ1)**2+2*n*Math.sin(φ1);
+  const ρ0=Math.sqrt(C-2*n*Math.sin(φ0))/n;
+  const ρ=Math.sqrt(C-2*n*Math.sin(lat*D))/n;
+  const θ=n*(lon*D-λ0);
+  return [480+940*ρ*Math.sin(θ), 296-940*(ρ0-ρ*Math.cos(θ))];
 }
 
-// Simplified US outline path (continental US, Albers-projected approximation)
-const US_PATH="M 138,224 L 160,198 L 185,182 L 210,172 L 238,168 L 260,158 L 282,148 L 310,140 L 335,132 L 362,126 L 388,120 L 412,116 L 436,114 L 458,118 L 478,126 L 495,138 L 512,148 L 530,152 L 548,148 L 566,140 L 584,132 L 600,128 L 618,126 L 636,124 L 654,118 L 672,112 L 690,106 L 708,100 L 726,98 L 742,100 L 756,108 L 768,118 L 778,130 L 784,144 L 786,158 L 784,172 L 778,184 L 770,194 L 758,202 L 744,208 L 726,212 L 706,214 L 686,214 L 664,212 L 642,210 L 622,212 L 604,218 L 588,228 L 572,240 L 556,254 L 540,268 L 524,282 L 508,296 L 492,310 L 476,322 L 460,332 L 444,340 L 428,346 L 412,350 L 396,352 L 380,352 L 364,350 L 348,346 L 332,340 L 316,332 L 300,322 L 284,310 L 268,298 L 252,286 L 236,274 L 220,262 L 204,250 L 188,240 L 172,232 L 156,226 L 140,224 Z";
+// Build continental US border polygon via Albers-projected border coords
+function buildUSPoly(){
+  // Clockwise border: north → east coast → south/gulf → west coast
+  const segs=[
+    // Northern border west to east (49°N)
+    ...Array.from({length:59},(_,i)=>[−124+i,49]),
+    // Great Lakes / northeast wiggles (approximate)
+    [−95,49],[−88,48],[−84,46],[−83,46],[−83,42],[−79,43],[−76,44],[−75,45],[−72,45],[−70,43],
+    [−68,44],[−67,47],[−67,45],[−66,44],[−70,43],[−71,42],[−71,41],[−73,41],[−74,40.5],
+    // Mid-Atlantic coast south
+    [−75,39],[−75,38],[−76,37],[−76,36],[−76,35],[−77,34],[−79,33],[−80,32],[−81,31],
+    [−81,30],[−82,29.5],[−82,27],[−80,25.5],[−80,25],
+    // Florida tip and gulf coast
+    [−81,24.5],[−82,24.5],[−84,25],[−85,29],[−88,30],[−89,29],[−90,29],
+    [−91,29],[−93,30],[−94,30],[−95,29],[−97,26],[−97,25.8],
+    // Texas
+    [−97,26],[−97,28],[−100,28],[−100,32],[−103,32],[−104,32],[−106,32],
+    // New Mexico / Arizona / California border
+    [−108,31],[−111,31],[−114,32],[−117,32],
+    // Pacific coast north
+    [−117,33],[−118,34],[−120,35],[−122,37],[−122,38],[−124,40],[−124,41],
+    [−124,43],[−124,46],[−124,48],[−124,49],
+  ];
+  return segs.map(([lon,lat])=>{const[x,y]=albers(lon,lat);return`${x.toFixed(1)},${y.toFixed(1)}`;}).join(' ');
+}
 
 function renderMap(){
   const svg=document.getElementById('route-svg');
@@ -1010,116 +1002,107 @@ function renderMap(){
   const tip=document.getElementById('map-tooltip');
   if(!svg)return;
 
-  // Gather stops
+  // Gather unique city stops
   const stops=[];
-  S.days.forEach((day,di)=>{
+  S.days.forEach(day=>{
     if(!day.city)return;
     const prev=stops[stops.length-1];
     const hasGame=(day.events||[]).some(e=>e&&e.type==='baseball');
     const hasFlight=(day.events||[]).some(e=>e&&e.type==='flight')||(day.flight&&(day.flight.airline||day.flight.number));
-    const hasDrive=(day.events||[]).some(e=>e&&e.type==='drive');
     const legType=hasFlight?'flight':'drive';
     if(prev&&prev.city===day.city){if(hasGame)prev.hasGame=true;return;}
-    stops.push({city:day.city,date:day.date,hasGame,legType,dayIndex:di,events:day.events||[]});
+    stops.push({city:day.city,date:day.date,hasGame,legType,events:day.events||[]});
   });
 
-  if(stops.length<1){
-    svg.style.display='none';
-    empty.style.display='block';
-    return;
-  }
+  if(!stops.length){svg.style.display='none';empty.style.display='block';return;}
 
-  // Resolve coordinates
-  const VW=960,VH=520;
-  const resolved=stops.map(s=>{
-    const ll=cityToCoords(s.city);
+  // Resolve to Albers screen coords
+  const pts=stops.map(s=>{
+    const ll=cityLL(s.city);
     if(!ll)return null;
-    const [x,y]=albersUSA(ll[0],ll[1]);
-    // clamp to viewbox
-    return{...s,x:Math.max(20,Math.min(VW-20,x)),y:Math.max(20,Math.min(VH-20,y))};
+    const[x,y]=albers(ll[0],ll[1]);
+    return{...s,x,y};
   }).filter(Boolean);
 
-  if(resolved.length<1){
-    svg.style.display='none';
-    empty.style.display='block';
-    return;
-  }
+  if(!pts.length){svg.style.display='none';empty.style.display='block';return;}
   svg.style.display='block';
   empty.style.display='none';
 
+  const VW=960,VH=560;
   svg.setAttribute('viewBox',`0 0 ${VW} ${VH}`);
+  svg.removeAttribute('height');
   svg.style.height='auto';
-  svg.setAttribute('height','');
+
+  const usPoly=buildUSPoly();
 
   let h=`<defs>
-    <filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity=".2"/></filter>
+    <filter id="dropshadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity=".2"/>
+    </filter>
+    <clipPath id="usclip"><polygon points="${usPoly}"/></clipPath>
   </defs>`;
 
-  // US outline background
-  h+=`<rect width="${VW}" height="${VH}" fill="#e8f4f0" rx="8"/>`;
-  // Draw state-region fill as simple polygon approximation
-  h+=`<path d="${US_PATH}" fill="#c8dfd4" stroke="#7aab90" stroke-width="1.2" opacity=".7"/>`;
+  // Ocean/background
+  h+=`<rect width="${VW}" height="${VH}" fill="#c9dff0" rx="10"/>`;
 
-  // Grid lines (lat/lon feel)
+  // US land fill
+  h+=`<polygon points="${usPoly}" fill="#e2eedf" stroke="#6aaa82" stroke-width="2" stroke-linejoin="round"/>`;
+
+  // Subtle graticule clipped to US
+  h+=`<g clip-path="url(#usclip)" opacity=".35">`;
   for(let lat=25;lat<=50;lat+=5){
-    const pts2=[];
-    for(let lon=-125;lon<=-65;lon+=2){
-      const [px,py]=albersUSA(lon,lat);
-      pts2.push(`${px},${py}`);
-    }
-    h+=`<polyline points="${pts2.join(' ')}" fill="none" stroke="#aacfc0" stroke-width=".4" opacity=".5"/>`;
+    const gp=[];for(let lon=-125;lon<=-66;lon+=1){const[px,py]=albers(lon,lat);gp.push(`${px.toFixed(0)},${py.toFixed(0)}`);}
+    h+=`<polyline points="${gp.join(' ')}" fill="none" stroke="#5a9e70" stroke-width=".6" stroke-dasharray="5,5"/>`;
   }
-  for(let lon=-125;lon<=-65;lon+=5){
-    const pts2=[];
-    for(let lat=24;lat<=50;lat+=1){
-      const [px,py]=albersUSA(lon,lat);
-      pts2.push(`${px},${py}`);
-    }
-    h+=`<polyline points="${pts2.join(' ')}" fill="none" stroke="#aacfc0" stroke-width=".4" opacity=".5"/>`;
+  for(let lon=-120;lon<=-70;lon+=10){
+    const gp=[];for(let lat=24;lat<=50;lat+=.5){const[px,py]=albers(lon,lat);gp.push(`${px.toFixed(0)},${py.toFixed(0)}`);}
+    h+=`<polyline points="${gp.join(' ')}" fill="none" stroke="#5a9e70" stroke-width=".6" stroke-dasharray="5,5"/>`;
   }
+  h+=`</g>`;
 
-  // Legs between stops
-  for(let i=0;i<resolved.length-1;i++){
-    const a=resolved[i],b=resolved[i+1];
-    const mx=(a.x+b.x)/2;
-    const my=Math.min(a.y,b.y)-Math.abs(b.x-a.x)*0.25-20;
-    const pathD=`M${a.x},${a.y} Q${mx},${my} ${b.x},${b.y}`;
+  // Route legs
+  for(let i=0;i<pts.length-1;i++){
+    const a=pts[i],b=pts[i+1];
+    const mx=(a.x+b.x)/2, my=Math.min(a.y,b.y)-Math.hypot(b.x-a.x,b.y-a.y)*0.28;
+    const d=`M${a.x},${a.y} Q${mx},${my} ${b.x},${b.y}`;
+    h+=`<path id="rp${i}" d="${d}" fill="none" style="display:none"/>`;
     if(a.legType==='flight'){
-      h+=`<path d="${pathD}" fill="none" stroke="#185FA5" stroke-width="2" stroke-dasharray="8,5" stroke-linecap="round" opacity=".85"/>`;
-      h+=`<path id="fpath-${i}" d="${pathD}" fill="none" style="display:none"/>`;
-      h+=`<text font-size="14" text-anchor="middle" dominant-baseline="middle">
-        <animateMotion dur="${2+i*0.4}s" repeatCount="indefinite" rotate="auto"><mpath href="#fpath-${i}"/></animateMotion>✈
+      h+=`<path d="${d}" fill="none" stroke="#1e56a0" stroke-width="2.2" stroke-dasharray="9,5" stroke-linecap="round" opacity=".9"/>`;
+      h+=`<text font-size="16" dominant-baseline="middle" text-anchor="middle">
+        <animateMotion dur="${2+i*0.5}s" repeatCount="indefinite" rotate="auto"><mpath href="#rp${i}"/></animateMotion>✈
       </text>`;
     } else {
-      h+=`<path d="${pathD}" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round" opacity=".8"/>`;
-      h+=`<path id="dpath-${i}" d="${pathD}" fill="none" style="display:none"/>`;
-      h+=`<circle r="4" fill="#b45309" opacity=".9">
-        <animateMotion dur="${1.8+i*0.35}s" repeatCount="indefinite"><mpath href="#dpath-${i}"/></animateMotion>
+      h+=`<path d="${d}" fill="none" stroke="#b45309" stroke-width="2.2" stroke-linecap="round" opacity=".85"/>`;
+      h+=`<circle r="5" fill="#b45309">
+        <animateMotion dur="${1.8+i*0.4}s" repeatCount="indefinite"><mpath href="#rp${i}"/></animateMotion>
       </circle>`;
     }
   }
 
-  const STOP_R=14;
-  resolved.forEach((p,i)=>{
+  // Stop markers
+  const R=14;
+  pts.forEach((p,i)=>{
     const fill=p.hasGame?'#c0392b':'#1a4731';
-    const short=p.city.split(',')[0].trim().substring(0,13);
+    const label=p.city.split(',')[0].trim().substring(0,14);
     const dateStr=p.date?fmtDate(p.date,'short'):'';
-    // Label position — alternate above/below to reduce overlap
-    const labelY=i%2===0?p.y+STOP_R+13:p.y-STOP_R-4;
-    const dateY=i%2===0?p.y+STOP_R+24:p.y-STOP_R-14;
+    // Alternate label above/below
+    const above=i%2===0;
+    const ly=above?p.y-R-4:p.y+R+13;
+    const dy=above?p.y-R-15:p.y+R+24;
     if(p.hasGame){
-      h+=`<circle cx="${p.x}" cy="${p.y}" r="${STOP_R+5}" fill="none" stroke="#c0392b" stroke-width="1.5" opacity=".25">
-        <animate attributeName="r" values="${STOP_R+3};${STOP_R+10};${STOP_R+3}" dur="2.2s" repeatCount="indefinite"/>
-        <animate attributeName="opacity" values=".35;0;.35" dur="2.2s" repeatCount="indefinite"/>
+      h+=`<circle cx="${p.x}" cy="${p.y}" r="${R+6}" fill="none" stroke="#c0392b" stroke-width="1.5">
+        <animate attributeName="r" values="${R+4};${R+12};${R+4}" dur="2.4s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values=".4;0;.4" dur="2.4s" repeatCount="indefinite"/>
       </circle>`;
     }
-    h+=`<g class="map-stop" style="cursor:pointer" data-idx="${i}">
-      <circle cx="${p.x}" cy="${p.y}" r="${STOP_R}" fill="${fill}" stroke="#fff" stroke-width="2.5" filter="url(#shadow)"/>
-      <text x="${p.x}" y="${p.y+1}" text-anchor="middle" dominant-baseline="middle" fill="#fff" font-family="var(--font-d)" font-size="11">${i+1}</text>
-      <text x="${p.x}" y="${labelY}" text-anchor="middle" fill="#1a2e20" font-family="var(--font-b)" font-size="10" font-weight="600"
-        paint-order="stroke" stroke="#e8f4f0" stroke-width="3" stroke-linejoin="round">${esc(short)}</text>
-      <text x="${p.x}" y="${dateY}" text-anchor="middle" fill="#4a6a58" font-family="var(--font-m)" font-size="8.5"
-        paint-order="stroke" stroke="#e8f4f0" stroke-width="3" stroke-linejoin="round">${esc(dateStr)}</text>
+    h+=`<g class="map-stop" data-idx="${i}" style="cursor:pointer">
+      <circle cx="${p.x}" cy="${p.y}" r="${R}" fill="${fill}" stroke="#fff" stroke-width="2.5" filter="url(#dropshadow)"/>
+      <text x="${p.x}" y="${p.y+1}" text-anchor="middle" dominant-baseline="middle" fill="#fff"
+        font-family="var(--font-d)" font-size="11" letter-spacing=".02em">${i+1}</text>
+      <text x="${p.x}" y="${ly}" text-anchor="middle" fill="#1a2e20" font-size="10.5" font-weight="600"
+        font-family="var(--font-b)" paint-order="stroke" stroke="#e2eedf" stroke-width="3.5" stroke-linejoin="round">${esc(label)}</text>
+      <text x="${p.x}" y="${dy}" text-anchor="middle" fill="#3a5e48" font-size="9"
+        font-family="var(--font-m)" paint-order="stroke" stroke="#e2eedf" stroke-width="3" stroke-linejoin="round">${esc(dateStr)}</text>
     </g>`;
   });
 
@@ -1128,28 +1111,21 @@ function renderMap(){
   // Tooltip
   svg.querySelectorAll('.map-stop').forEach(el=>{
     el.addEventListener('click',ev=>{
-      const idx=+el.dataset.idx;
-      const p=resolved[idx];
-      const games=p.events.filter(e=>e&&e.type==='baseball');
-      const gameList=games.map(e=>`<div style="margin-top:4px;color:#c0392b">⚾ ${esc(e.desc||e.team||'Game')}</div>`).join('');
-      const hotels=p.events.filter(e=>e&&e.type==='hotel');
-      const hotelList=hotels.map(e=>`<div style="margin-top:3px;color:var(--green-mid)">🏨 ${esc(e.desc||e.name||'Hotel')}</div>`).join('');
-      tip.innerHTML=`<div style="font-weight:600;font-size:14px;color:var(--text)">${esc(p.city)}</div>
-        <div style="font-family:var(--font-m);font-size:10px;color:var(--text2);margin-top:2px">${esc(p.date?fmtDate(p.date,'short'):'')}</div>
-        ${gameList}${hotelList}
-        ${!games.length&&!hotels.length?'<div style="margin-top:5px;font-size:12px;color:var(--text2)">No game or hotel events</div>':''}`;
-      const rect=svg.getBoundingClientRect();
-      const vw=parseFloat(svg.getAttribute('viewBox').split(' ')[2]);
-      const vh=parseFloat(svg.getAttribute('viewBox').split(' ')[3]);
-      const sx=rect.width/vw, sy=rect.height/vh;
-      let tx=rect.left+p.x*sx+16;
-      let ty=rect.top+p.y*sy-20;
-      if(tx+270>window.innerWidth)tx=rect.left+p.x*sx-280;
-      if(ty<0)ty=10;
-      tip.style.left=tx+'px';
-      tip.style.top=ty+'px';
-      tip.style.display='block';
       ev.stopPropagation();
+      const p=pts[+el.dataset.idx];
+      const games=p.events.filter(e=>e&&e.type==='baseball');
+      const hotels=p.events.filter(e=>e&&e.type==='hotel');
+      tip.innerHTML=`<div style="font-weight:600;font-size:14px">${esc(p.city)}</div>
+        <div style="font-size:10px;color:var(--text2);font-family:var(--font-m);margin-top:2px">${esc(p.date?fmtDate(p.date,'short'):'')}</div>
+        ${games.map(e=>`<div style="margin-top:5px;color:#c0392b">⚾ ${esc(e.desc||e.team||'Game')}</div>`).join('')}
+        ${hotels.map(e=>`<div style="margin-top:4px;color:var(--green-mid)">🏨 ${esc(e.desc||e.name||'Hotel')}</div>`).join('')}
+        ${!games.length&&!hotels.length?'<div style="margin-top:5px;font-size:12px;color:var(--text2)">No game or hotel events</div>':''}`;
+      const r=svg.getBoundingClientRect();
+      const sx=r.width/VW, sy=r.height/VH;
+      let tx=r.left+p.x*sx+18, ty=r.top+p.y*sy-30;
+      if(tx+280>window.innerWidth)tx=r.left+p.x*sx-290;
+      if(ty<10)ty=10;
+      tip.style.cssText+=`;left:${tx}px;top:${ty}px;display:block`;
     });
   });
   document.addEventListener('click',()=>{tip.style.display='none';},{once:true});
