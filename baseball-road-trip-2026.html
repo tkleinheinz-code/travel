@@ -298,10 +298,16 @@ body{font-family:var(--font-b);background:var(--bg);min-height:100vh;color:var(-
 </div>
 <div id="pane-map" class="pane">
   <div class="sec-hd" style="margin-bottom:.5rem">Route map</div>
-  <div style="font-family:var(--font-m);font-size:11px;color:var(--text2);margin-bottom:1rem">Tap any stop for details · ✈ flight · 🚗 drive</div>
-  <div id="map-container" style="background:var(--bg2);border:.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;position:relative">
-    <svg id="route-svg" width="100%" style="display:block"></svg>
+  <div style="font-family:var(--font-m);font-size:11px;color:var(--text2);margin-bottom:.6rem">Pinch or scroll to zoom · drag to pan · tap stop for details</div>
+  <div id="map-container" style="background:var(--bg2);border:.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;position:relative;touch-action:none">
+    <svg id="route-svg" width="100%" style="display:block;cursor:grab"></svg>
     <div id="map-empty" class="empty" style="display:none"><i class="ti ti-map-off"></i>Add days with cities to see your route.</div>
+    <!-- Zoom controls -->
+    <div style="position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:4px;z-index:10">
+      <button onclick="mapZoom(1.4)" style="width:32px;height:32px;border-radius:8px;border:.5px solid var(--border2);background:var(--bg2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.12)">+</button>
+      <button onclick="mapZoom(1/1.4)" style="width:32px;height:32px;border-radius:8px;border:.5px solid var(--border2);background:var(--bg2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.12)">−</button>
+      <button onclick="mapReset()" style="width:32px;height:32px;border-radius:8px;border:.5px solid var(--border2);background:var(--bg2);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.12)" title="Reset"><i class="ti ti-focus-2" style="font-size:14px"></i></button>
+    </div>
   </div>
   <div id="map-legend" style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-family:var(--font-m);font-size:11px;color:var(--text2)">
     <span><svg width="28" height="10" style="vertical-align:middle"><line x1="0" y1="5" x2="28" y2="5" stroke="#185FA5" stroke-width="2" stroke-dasharray="5,3"/></svg> Flight</span>
@@ -1131,6 +1137,141 @@ function renderMap(){
   document.addEventListener('click',()=>{tip.style.display='none';},{once:true});
 }
 window.renderMap=renderMap;
+
+
+// ── Map zoom/pan ──────────────────────────────────────────────
+(function(){
+  let scale=1, tx=0, ty=0;
+  let dragging=false, lastX=0, lastY=0;
+  let pinching=false, lastDist=0;
+
+  function getSVG(){return document.getElementById('route-svg');}
+
+  function applyTransform(){
+    const svg=getSVG(); if(!svg)return;
+    // We transform the inner <g> wrapper; add one if missing
+    let g=svg.querySelector('g#map-g');
+    if(!g){
+      g=document.createElementNS('http://www.w3.org/2000/svg','g');
+      g.id='map-g';
+      while(svg.firstChild)g.appendChild(svg.firstChild);
+      svg.appendChild(g);
+    }
+    g.setAttribute('transform',`translate(${tx},${ty}) scale(${scale})`);
+  }
+
+  function clampPan(){
+    const svg=getSVG(); if(!svg)return;
+    const vw=960,vh=560;
+    const rw=svg.clientWidth, rh=svg.clientHeight||rw*vh/vw;
+    const minTx=rw-vw*scale*rw/vw, minTy=rh-vh*scale*rh/vh;
+    tx=Math.min(0,Math.max(minTx,tx));
+    ty=Math.min(0,Math.max(minTy,ty));
+  }
+
+  window.mapZoom=function(factor,cx,cy){
+    const svg=getSVG(); if(!svg)return;
+    const r=svg.getBoundingClientRect();
+    const pivotX=cx!=null?cx:r.width/2;
+    const pivotY=cy!=null?cy:r.height/2;
+    // pivot in SVG space
+    const svgPX=(pivotX-tx)/(scale*r.width/960);
+    const svgPY=(pivotY-ty)/(scale*r.height/560);
+    scale=Math.min(8,Math.max(1,scale*factor));
+    // re-anchor
+    tx=pivotX-svgPX*scale*r.width/960;
+    ty=pivotY-svgPY*scale*r.height/560;
+    clampPan();
+    applyTransform();
+  };
+
+  window.mapReset=function(){
+    scale=1;tx=0;ty=0;applyTransform();
+  };
+
+  // Re-wrap whenever renderMap redraws
+  const origRender=window.renderMap;
+  window.renderMap=function(){
+    origRender&&origRender();
+    scale=1;tx=0;ty=0;
+    // wrap content in <g> after render
+    const svg=getSVG(); if(!svg)return;
+    requestAnimationFrame(()=>{
+      let g=svg.querySelector('g#map-g');
+      if(!g){
+        g=document.createElementNS('http://www.w3.org/2000/svg','g');
+        g.id='map-g';
+        while(svg.firstChild)g.appendChild(svg.firstChild);
+        svg.appendChild(g);
+      }
+    });
+  };
+
+  // Mouse wheel zoom
+  document.addEventListener('wheel',e=>{
+    const svg=getSVG(); if(!svg||!svg.contains(e.target))return;
+    e.preventDefault();
+    const r=svg.getBoundingClientRect();
+    mapZoom(e.deltaY<0?1.2:1/1.2, e.clientX-r.left, e.clientY-r.top);
+  },{passive:false});
+
+  // Mouse drag
+  document.addEventListener('mousedown',e=>{
+    const svg=getSVG(); if(!svg||!svg.contains(e.target))return;
+    if(scale<=1)return;
+    dragging=true; lastX=e.clientX; lastY=e.clientY;
+    svg.style.cursor='grabbing';
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!dragging)return;
+    tx+=e.clientX-lastX; ty+=e.clientY-lastY;
+    lastX=e.clientX; lastY=e.clientY;
+    clampPan(); applyTransform();
+  });
+  document.addEventListener('mouseup',()=>{
+    dragging=false;
+    const svg=getSVG(); if(svg)svg.style.cursor='grab';
+  });
+
+  // Touch pinch + drag
+  document.addEventListener('touchstart',e=>{
+    const svg=getSVG(); if(!svg||!svg.contains(e.target))return;
+    if(e.touches.length===2){
+      pinching=true;
+      lastDist=Math.hypot(
+        e.touches[0].clientX-e.touches[1].clientX,
+        e.touches[0].clientY-e.touches[1].clientY);
+    } else if(e.touches.length===1&&scale>1){
+      dragging=true;
+      lastX=e.touches[0].clientX; lastY=e.touches[0].clientY;
+    }
+  },{passive:true});
+
+  document.addEventListener('touchmove',e=>{
+    const svg=getSVG(); if(!svg||!svg.contains(e.target))return;
+    if(pinching&&e.touches.length===2){
+      e.preventDefault();
+      const dist=Math.hypot(
+        e.touches[0].clientX-e.touches[1].clientX,
+        e.touches[0].clientY-e.touches[1].clientY);
+      const cx=(e.touches[0].clientX+e.touches[1].clientX)/2;
+      const cy=(e.touches[0].clientY+e.touches[1].clientY)/2;
+      const r=svg.getBoundingClientRect();
+      mapZoom(dist/lastDist, cx-r.left, cy-r.top);
+      lastDist=dist;
+    } else if(dragging&&e.touches.length===1&&scale>1){
+      e.preventDefault();
+      tx+=e.touches[0].clientX-lastX; ty+=e.touches[0].clientY-lastY;
+      lastX=e.touches[0].clientX; lastY=e.touches[0].clientY;
+      clampPan(); applyTransform();
+    }
+  },{passive:false});
+
+  document.addEventListener('touchend',e=>{
+    if(e.touches.length<2)pinching=false;
+    if(e.touches.length===0)dragging=false;
+  });
+})();
 
 // ── Boot ──────────────────────────────────────────────────────
 const BAKED_CONFIG = {
