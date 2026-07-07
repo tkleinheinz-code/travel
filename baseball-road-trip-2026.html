@@ -124,11 +124,11 @@ body{font-family:var(--font-b);background:var(--bg);min-height:100vh;color:var(-
 .ev-note{font-size:12px;color:var(--text2);margin-top:2px;word-break:break-word}
 .ev-cost{font-family:var(--font-m);font-size:12px;color:var(--green-mid);font-weight:500;white-space:nowrap;flex-shrink:0}
 .ev-actions{display:flex;gap:4px;flex-shrink:0}
-.ic-baseball{color:var(--red)}.ic-flight{color:#185FA5}.ic-drive{color:#854F0B}
+.ic-baseball{color:var(--red)}.ic-flight{color:#185FA5}.ic-drive{color:#854F0B}.ic-train{color:#5b21b6}
 .ic-hotel{color:var(--green-mid)}.ic-food{color:#534AB7}.ic-sightseeing{color:#0F6E56}.ic-other{color:var(--text2)}
 .badge{display:inline-flex;align-items:center;font-family:var(--font-m);font-size:10px;letter-spacing:.04em;padding:2px 7px;border-radius:4px;white-space:nowrap}
 .b-baseball{background:var(--red-light);color:var(--red)}
-.b-flight{background:var(--blue-light);color:var(--blue)}
+.b-flight{background:var(--blue-light);color:var(--blue)}.b-train{background:var(--purple-light);color:var(--purple)}
 .b-drive{background:var(--amber-light);color:#78350f}
 .b-hotel{background:var(--green-light);color:var(--green)}
 .b-food{background:var(--purple-light);color:var(--purple)}
@@ -160,7 +160,7 @@ body{font-family:var(--font-b);background:var(--bg);min-height:100vh;color:var(-
 .type-opt{padding:5px 11px;border-radius:20px;border:.5px solid var(--border2);background:none;cursor:pointer;font-size:12px;font-family:var(--font-m);color:var(--text2);transition:all .12s}
 .type-opt:hover{color:var(--text)}
 .sel-baseball{background:var(--red-light)!important;color:var(--red)!important;border-color:var(--red)!important}
-.sel-flight{background:var(--blue-light)!important;color:var(--blue)!important;border-color:var(--blue)!important}
+.sel-flight{background:var(--blue-light)!important;color:var(--blue)!important;border-color:var(--blue)!important}.sel-train{background:var(--purple-light)!important;color:var(--purple)!important;border-color:var(--purple)!important}
 .sel-drive{background:var(--amber-light)!important;color:#78350f!important;border-color:#92400e!important}
 .sel-hotel{background:var(--green-light)!important;color:var(--green)!important;border-color:var(--green)!important}
 .sel-food{background:var(--purple-light)!important;color:var(--purple)!important;border-color:#7c3aed!important}
@@ -320,8 +320,8 @@ body{font-family:var(--font-b);background:var(--bg);min-height:100vh;color:var(-
 import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getDatabase, ref, onValue, set } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
-const TI={baseball:'ti-ball-baseball',flight:'ti-plane',drive:'ti-car',hotel:'ti-bed',food:'ti-salad',sightseeing:'ti-map-pin',other:'ti-notes'};
-const TL={baseball:'Game',flight:'Flight',drive:'Drive',hotel:'Hotel',food:'Food/Bar',sightseeing:'Sightseeing',other:'Other'};
+const TI={baseball:'ti-ball-baseball',flight:'ti-plane',drive:'ti-car',train:'ti-train',hotel:'ti-bed',food:'ti-salad',sightseeing:'ti-map-pin',other:'ti-notes'};
+const TL={baseball:'Game',flight:'Flight',drive:'Drive',train:'Train',hotel:'Hotel',food:'Food/Bar',sightseeing:'Sightseeing',other:'Other'};
 
 let S={
   trip:{name:'My Baseball Trip',start:'',end:'',notes:'',travelers:[]},
@@ -607,6 +607,7 @@ function renderDays(){
     const evs=day.events||[];
     const gamesBadges=evs.filter(e=>e&&String(e.type||'').trim()==='baseball').map(e=>`<span class="badge b-baseball">${esc((e.desc||'').substring(0,28))}</span>`).join('');
     const flightBadges=evs.filter(e=>e&&String(e.type||'').trim()==='flight').map(()=>`<span class="badge b-flight"><i class="ti ti-plane" style="font-size:11px;margin-right:3px"></i>Flight</span>`).join('');
+    const trainBadges=evs.filter(e=>e&&String(e.type||'').trim()==='train').map(()=>`<span class="badge b-train"><i class="ti ti-train" style="font-size:11px;margin-right:3px"></i>Train</span>`).join('');
     const dayFlightBadge=day.flight&&(day.flight.airline||day.flight.number)?`<span class="badge b-flight"><i class="ti ti-plane" style="font-size:11px;margin-right:3px"></i>${esc(day.flight.number||day.flight.airline)}</span>`:'';
     const hotelBadges=evs.filter(e=>e&&String(e.type||'').trim()==='hotel').map(e=>`<span class="badge b-hotel"><i class="ti ti-bed" style="font-size:11px;margin-right:3px"></i>${esc((e.desc||'Hotel').substring(0,28))}</span>`).join('');
     const evHtml=evs.length?evs.filter(ev=>ev&&ev.type).map((ev,ei)=>`
@@ -617,6 +618,7 @@ function renderDays(){
           <div class="ev-desc">${esc(ev.desc||'')}</div>
           ${ev.type==='drive'&&ev.drive&&(ev.drive.start||ev.drive.miles)?`<div class="ev-note">${[ev.drive.start&&ev.drive.end?esc(ev.drive.start)+' → '+esc(ev.drive.end):'',ev.drive.miles?esc(ev.drive.miles)+' mi':'',ev.drive.travelTime?esc(ev.drive.travelTime):''].filter(Boolean).join(' · ')}</div>`:''}
           ${ev.type==='flight'&&ev.flight?`<div class="ev-note">${[ev.flight.airline?esc(ev.flight.airline):'',ev.flight.departCity&&ev.flight.arrivalCity?esc(ev.flight.departCity)+' → '+esc(ev.flight.arrivalCity):'',ev.flight.connectionCity?'via '+esc(ev.flight.connectionCity):''].filter(Boolean).join(' · ')}</div>`:''}
+          ${ev.type==='train'&&ev.train?`<div class="ev-note">${[ev.train.operator?esc(ev.train.operator):'',ev.train.from&&ev.train.to?esc(ev.train.from)+' → '+esc(ev.train.to):'',ev.train.trainNumber?'Train '+esc(ev.train.trainNumber):''].filter(Boolean).join(' · ')}</div>`:''}
           ${ev.note?`<div class="ev-note">${esc(ev.note)}</div>`:''}
           ${ev.url?`<div class="ev-note"><a href="${esc(ev.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--green);text-decoration:none;font-family:var(--font-m);font-size:11px;"><i class="ti ti-external-link" style="font-size:11px;margin-right:3px"></i>${esc(ev.url.replace(/^https?:\/\//,'').split('/')[0])}</a></div>`:''}
         </div>
@@ -634,7 +636,7 @@ function renderDays(){
           <div class="day-date-lbl">${day.date?fmtDate(day.date):'Day '+(di+1)}</div>
           ${day.city?`<div class="day-city-lbl">${esc(day.city)}</div>`:''}
         </div>
-        <div class="day-badges">${gamesBadges}${flightBadges}${dayFlightBadge}${hotelBadges}</div>
+        <div class="day-badges">${gamesBadges}${flightBadges}${trainBadges}${dayFlightBadge}${hotelBadges}</div>
         <i class="ti ti-chevron-down chev${open?' open':''}"></i>
         <button class="btn-ghost btn-sm" onclick="event.stopPropagation();openDayModal(${di})" aria-label="Edit day"><i class="ti ti-edit"></i></button>
         <button class="btn-ghost btn-sm btn-danger" onclick="event.stopPropagation();removeDay(${di})" aria-label="Remove day"><i class="ti ti-trash"></i></button>
@@ -702,10 +704,11 @@ window.openEvModal=function(di,ei){
   S._evDesc=ev.desc||'';S._evNote=ev.note||'';S._evTime=ev.time||'';S._evCost=ev.cost!=null?String(ev.cost):'';S._evUrl=ev.url||'';
   S._evDstart=dr.start||'';S._evDend=dr.end||'';S._evDmiles=dr.miles!=null?String(dr.miles):'';S._evDtime=dr.travelTime||'';
   S._evFairline=fl.airline||'';S._evFdepart=fl.departCity||'';S._evFconnect=fl.connectionCity||'';S._evFarrive=fl.arrivalCity||'';
+  const tr=ev.train||{};S._evTrainOp=tr.operator||'';S._evTrainFrom=tr.from||'';S._evTrainTo=tr.to||'';S._evTrainNum=tr.trainNumber||'';S._evTrainArr=tr.arrivalTime||'';
   S._evFconnArr=fl.connectionArrival||'';S._evFconnDep=fl.connectionDeparture||'';S._evFarrTime=fl.arrivalTime||'';
   S._evHaddr=ev.hotelAddr||'';S._evHconf=ev.hotelConf||'';S._evHphone=ev.hotelPhone||'';
   $('modal-title').textContent=ei!=null?'Edit event':'Add event';
-  const types=['baseball','flight','drive','hotel','food','sightseeing','other'];
+  const types=['baseball','flight','drive','train','hotel','food','sightseeing','other'];
   $('modal-body').innerHTML=`
     <div class="form-g"><label>Event type</label>
       <div class="type-grid">${types.map(t=>`<button type="button" class="type-opt${S._selType===t?' sel-'+t:''}" id="topt-${t}" onclick="selType('${t}')">${TL[t]}</button>`).join('')}</div>
@@ -742,9 +745,20 @@ function renderEvFields(){
   const curHaddr=document.getElementById('f-haddr')?.value||S._evHaddr||'';
   const curHconf=document.getElementById('f-hconf')?.value||S._evHconf||'';
   const curHphone=document.getElementById('f-hphone')?.value||S._evHphone||'';
-  const timeLabel=t==='baseball'?'Game time':t==='flight'?'Departure time':'Time';
+  const timeLabel=t==='baseball'?'Game time':t==='flight'?'Departure time':t==='train'?'Departure time':'Time';
   const descLabel=t==='baseball'?'Teams playing':t==='hotel'?'Hotel name':'Description';
   const descPlaceholder=t==='baseball'?'Yankees vs Red Sox · Yankee Stadium':t==='hotel'?'Marriott Downtown':'Description';
+  const trainBlock=t==='train'?`
+    <div style="border-top:.5px solid var(--border);margin:4px 0 12px"></div>
+    <div class="sub-lbl" style="margin-bottom:10px">Train details</div>
+    <div class="form-row">
+      <div class="form-g full"><label>Rail operator</label><input type="text" id="f-trainop" placeholder="Amtrak, LIRR, NJ Transit…" value="${S._evTrainOp||''}"></div>
+      <div class="form-g"><label>Departure city / station</label><input type="text" id="f-trainfrom" placeholder="New York Penn Station" value="${S._evTrainFrom||''}"></div>
+      <div class="form-g"><label>Arrival city / station</label><input type="text" id="f-trainto" placeholder="Washington Union Station" value="${S._evTrainTo||''}"></div>
+      <div class="form-g"><label>Train # / route</label><input type="text" id="f-trainnum" placeholder="Acela 2151" value="${S._evTrainNum||''}"></div>
+      <div class="form-g"><label>Arrival time</label><input type="time" id="f-trainarr" value="${S._evTrainArr||''}"></div>
+    </div>`:''
+  ;
   const flightBlock=t==='flight'?`
     <div style="border-top:.5px solid var(--border);margin:4px 0 12px"></div>
     <div class="sub-lbl" style="margin-bottom:10px">Flight details</div>
@@ -785,7 +799,8 @@ function renderEvFields(){
       <div class="form-g full"><label>URL / link</label><input type="url" id="f-eurl" placeholder="https://www.mlb.com/mets/tickets" value="${curUrl}"></div>
     </div>`;
   const driveFirst=t==='drive';
-  wrap.innerHTML=driveFirst?(driveBlock+mainBlock):mainBlock+(t==='drive'?driveBlock:'')+flightBlock+hotelBlock;
+  const trainFirst=t==='train';
+  wrap.innerHTML=trainFirst?(trainBlock+mainBlock):driveFirst?(driveBlock+mainBlock):mainBlock+(t==='drive'?driveBlock:'')+(t==='train'?trainBlock:'')+flightBlock+hotelBlock;
   const phoneEl=document.getElementById('f-hphone');
   if(phoneEl)phoneEl.addEventListener('input',formatPhone);
 }
@@ -814,6 +829,7 @@ window.saveModal=function(){
     const cost=$('f-ecost')?.value||'';
     if(!desc){alert('Please enter a description.');return;}
     const driveData=S._selType==='drive'?{start:$('f-dstart')?.value||'',end:$('f-dend')?.value||'',miles:$('f-dmiles')?.value||'',travelTime:$('f-dtime')?.value||''}:null;
+    const trainData=S._selType==='train'?{operator:$('f-trainop')?.value||'',from:$('f-trainfrom')?.value||'',to:$('f-trainto')?.value||'',trainNumber:$('f-trainnum')?.value||'',arrivalTime:$('f-trainarr')?.value||''}:null;
     const flightData=S._selType==='flight'?{airline:$('f-fairline')?.value||'',departCity:$('f-fdepart')?.value||'',arrivalCity:$('f-farrive')?.value||'',arrivalTime:$('f-farrtime')?.value||'',connectionCity:$('f-fconnect')?.value||'',connectionArrival:$('f-fconnarr')?.value||'',connectionDeparture:$('f-fconndep')?.value||''}:null;
     const hotelAddr=S._selType==='hotel'?$('f-haddr')?.value||'':'';
     const hotelConf=S._selType==='hotel'?$('f-hconf')?.value||'':'';
@@ -982,9 +998,10 @@ function renderMap(){
     if(!isLast){
       const next=stops[i+1];
       const legFlight=s.legType==='flight';
-      const legColor=legFlight?'#1e56a0':'#b45309';
-      const legIcon=legFlight?'✈':'🚗';
-      const legLabel=legFlight?'Flight':'Drive';
+      const legTrain=s.legType==='train';
+      const legColor=legFlight?'#1e56a0':legTrain?'#5b21b6':'#b45309';
+      const legIcon=legFlight?'✈':legTrain?'🚂':'🚗';
+      const legLabel=legFlight?'Flight':legTrain?'Train':'Drive';
       html+=`<div style="display:flex;align-items:center;gap:8px;padding:6px 0 6px 0;margin-bottom:0">
         <div style="flex:1;height:1px;background:${legColor};opacity:.3;margin-left:-21px"></div>
         <span style="font-family:var(--font-m);font-size:10px;color:${legColor};background:${legFlight?'#dbeafe':'#fef3c7'};padding:3px 10px;border-radius:12px;border:.5px solid ${legColor}30;white-space:nowrap">${legIcon} ${legLabel}</span>
