@@ -923,7 +923,8 @@ function renderMap(){
     const hasHotel=(day.events||[]).some(e=>e&&e.type==='hotel');
     const hasFlight=(day.events||[]).some(e=>e&&e.type==='flight')||(day.flight&&(day.flight.airline||day.flight.number));
     const hasDrive=(day.events||[]).some(e=>e&&e.type==='drive');
-    const legType=hasFlight?'flight':hasDrive?'drive':'drive';
+    const hasTrain=(day.events||[]).some(e=>e&&e.type==='train');
+    const legType=hasFlight?'flight':hasTrain?'train':hasDrive?'drive':'drive';
     if(prev&&prev.city===day.city){
       if(hasGame)prev.hasGame=true;
       if(hasHotel){prev.hasHotel=true;prev.hotelEvents.push(...(day.events||[]).filter(e=>e&&e.type==='hotel'));}
