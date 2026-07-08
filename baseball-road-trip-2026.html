@@ -930,11 +930,15 @@ function renderMap(){
       if(hasHotel){prev.hasHotel=true;prev.hotelEvents.push(...(day.events||[]).filter(e=>e&&e.type==='hotel'));}
       prev.gameEvents.push(...(day.events||[]).filter(e=>e&&e.type==='baseball'));
       prev.days.push(day);
+      // Update legType on same-city days so train/flight on last day of a city-stay is captured
+      if(hasFlight||hasTrain||hasDrive) prev.legType=legType;
       return;
     }
+    // New city — set legType on the PREVIOUS stop (it describes how we leave that city)
+    if(prev) prev.legType=legType;
     const gameEvents=(day.events||[]).filter(e=>e&&e.type==='baseball');
     const hotelEvents=(day.events||[]).filter(e=>e&&e.type==='hotel');
-    stops.push({city:day.city,date:day.date,hasGame,hasHotel,hasFlight,hasDrive,legType,gameEvents,hotelEvents,days:[day]});
+    stops.push({city:day.city,date:day.date,hasGame,hasHotel,hasFlight,hasDrive,legType:'drive',gameEvents,hotelEvents,days:[day]});
   });
 
   if(!stops.length){
