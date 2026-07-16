@@ -600,7 +600,7 @@ window.tab=function(id,btn){
   if(id==='map')renderMap();
 }
 
-function renderAll(){updateStats();renderDays();}
+function renderAll(){updateStats();renderDays();startCountdown();}
 
 function updateStats(){
   const games=S.days.reduce((a,d)=>a+(d.events||[]).filter(e=>e.type==='baseball').length,0);
