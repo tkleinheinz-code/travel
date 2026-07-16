@@ -1,0 +1,1001 @@
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Karla:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+.btt-root {
+  --ink: #0B1D2E;
+  --ink-2: #142B40;
+  --ink-3: #1C3A54;
+  --turf: #2F6B45;
+  --turf-light: #3E8B5C;
+  --clay: #A8683E;
+  --chalk: #F5F1E6;
+  --amber: #F2B134;
+  --seam: #D1554B;
+  --muted: #8FA6B8;
+  font-family: 'Karla', sans-serif;
+  background: var(--ink);
+  color: var(--chalk);
+  border-radius: 18px;
+  overflow: hidden;
+  position: relative;
+  min-height: 640px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.06);
+}
+.btt-root * { box-sizing: border-box; }
+.btt-scroll { max-height: 92vh; overflow-y: auto; }
+
+/* ---------- Header ---------- */
+.btt-header {
+  padding: 22px 22px 14px;
+  background: linear-gradient(180deg, #0E2334 0%, var(--ink) 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.btt-title-wrap { min-width: 0; }
+.btt-eyebrow {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--amber);
+  text-transform: uppercase;
+  margin: 0 0 4px;
+}
+.btt-title {
+  font-family: 'Anton', sans-serif;
+  font-size: clamp(26px, 5vw, 40px);
+  letter-spacing: 0.02em;
+  margin: 0;
+  line-height: 0.95;
+  color: var(--chalk);
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.25);
+}
+.btt-subtitle {
+  font-size: 13.5px;
+  color: var(--muted);
+  margin: 6px 0 0;
+}
+.btt-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.btt-day-badge {
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  background: var(--seam);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+.btt-crew-btn {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.25);
+  color: var(--muted);
+  padding: 5px 10px;
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btt-crew-btn:hover { border-color: var(--amber); color: var(--amber); }
+
+.btt-sample-banner {
+  margin: 0 22px 0;
+  padding: 8px 14px;
+  background: rgba(242,177,52,0.12);
+  border: 1px dashed rgba(242,177,52,0.5);
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--amber);
+  margin-top: 14px;
+}
+
+/* ---------- Map ---------- */
+.btt-map-section { padding: 18px 22px 6px; }
+.btt-map-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1000 / 420;
+  border-radius: 14px;
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(242,177,52,0.10), transparent 45%),
+    radial-gradient(ellipse at 80% 80%, rgba(62,139,92,0.18), transparent 50%),
+    var(--ink-2);
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.btt-route-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.btt-markers-layer { position: absolute; inset: 0; }
+
+.btt-star {
+  position: absolute;
+  width: 3px; height: 3px;
+  background: rgba(255,255,255,0.4);
+  border-radius: 50%;
+}
+
+.btt-pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 30px; height: 30px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+}
+.btt-pin-dot {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--ink-3);
+  border: 2px solid var(--muted);
+  transition: transform 0.15s;
+}
+.btt-pin:hover .btt-pin-dot { transform: scale(1.25); }
+.btt-pin.is-visited .btt-pin-dot { background: var(--turf-light); border-color: var(--turf-light); }
+.btt-pin.is-current .btt-pin-dot {
+  background: var(--seam); border-color: var(--seam);
+  box-shadow: 0 0 0 0 rgba(209,85,75,0.6);
+  animation: btt-pulse 1.8s infinite;
+}
+@keyframes btt-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(209,85,75,0.55); }
+  70% { box-shadow: 0 0 0 12px rgba(209,85,75,0); }
+  100% { box-shadow: 0 0 0 0 rgba(209,85,75,0); }
+}
+.btt-pin-label {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.btt-pin.is-current .btt-pin-label { color: var(--amber); }
+
+.btt-travel {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 1px solid rgba(255,255,255,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.btt-car {
+  position: absolute;
+  width: 46px; height: 28px;
+  transform: translate(-50%, -135%);
+  transition: left 1.4s cubic-bezier(.4,0,.2,1), top 1.4s cubic-bezier(.4,0,.2,1);
+  z-index: 4;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 4px rgba(0,0,0,0.4));
+}
+.btt-car svg { width: 100%; height: 100%; }
+.btt-car .wheel { transform-origin: center; animation: btt-wheel 0.6s linear infinite; }
+@keyframes btt-wheel { to { transform: rotate(360deg); } }
+.btt-car { animation: btt-bounce 2.2s ease-in-out infinite; }
+@keyframes btt-bounce { 0%,100% { margin-top: 0; } 50% { margin-top: -3px; } }
+
+/* ---------- Log strip ---------- */
+.btt-log-section { padding: 16px 22px 22px; }
+.btt-log-heading {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 10px;
+}
+.btt-log-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scroll-snap-type: x proximity;
+}
+.btt-log-strip::-webkit-scrollbar { height: 6px; }
+.btt-log-strip::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+.btt-card {
+  scroll-snap-align: start;
+  flex: 0 0 168px;
+  background: var(--ink-2);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.btt-card:hover { border-color: var(--amber); transform: translateY(-2px); }
+.btt-card.is-current { border-color: var(--seam); }
+.btt-card-thumb {
+  width: 100%; height: 84px;
+  border-radius: 8px;
+  object-fit: cover;
+  margin-bottom: 8px;
+  background: var(--ink-3);
+}
+.btt-card-thumb.is-empty {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; color: var(--muted);
+}
+.btt-card-city { font-family: 'Anton', sans-serif; font-size: 15px; letter-spacing: 0.01em; margin: 0; }
+.btt-card-meta { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); margin: 4px 0 0; }
+.btt-card-status {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 9.5px;
+  font-family: 'Space Mono', monospace;
+  padding: 2px 7px;
+  border-radius: 100px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.btt-card.is-visited .btt-card-status { background: rgba(62,139,92,0.2); color: var(--turf-light); }
+.btt-card.is-current .btt-card-status { background: rgba(209,85,75,0.22); color: var(--seam); }
+.btt-card.is-upcoming .btt-card-status { background: rgba(143,166,184,0.15); color: var(--muted); }
+
+/* ---------- Drawer ---------- */
+.btt-overlay {
+  position: absolute; inset: 0;
+  background: rgba(4,10,16,0.7);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 10;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.2s;
+}
+.btt-overlay.is-open { opacity: 1; pointer-events: auto; }
+.btt-drawer {
+  background: var(--ink-2);
+  width: 100%;
+  max-height: 86%;
+  border-radius: 18px 18px 0 0;
+  padding: 20px 20px 26px;
+  overflow-y: auto;
+  transform: translateY(20px);
+  transition: transform 0.25s;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+.btt-overlay.is-open .btt-drawer { transform: translateY(0); }
+.btt-drawer-close {
+  position: absolute; top: 12px; right: 16px;
+  background: rgba(255,255,255,0.08);
+  border: none; color: var(--chalk);
+  width: 30px; height: 30px; border-radius: 50%;
+  cursor: pointer; font-size: 16px;
+  z-index: 2;
+}
+.btt-drawer-eyebrow { font-family:'Space Mono',monospace; font-size: 11px; color: var(--muted); margin: 0; }
+.btt-drawer-title { font-family: 'Anton', sans-serif; font-size: 28px; margin: 4px 0 2px; }
+.btt-drawer-sub { font-size: 13px; color: var(--muted); margin: 0 0 14px; }
+.btt-drawer-text { font-size: 14.5px; line-height: 1.6; color: var(--chalk); white-space: pre-wrap; }
+.btt-empty-note { color: var(--muted); font-size: 13.5px; font-style: italic; }
+.btt-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+.btt-photo-grid img {
+  width: 100%; height: 100px; object-fit: cover;
+  border-radius: 8px; cursor: pointer;
+}
+
+/* ---------- Forms / admin ---------- */
+.btt-divider { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 18px 0; }
+.btt-field-label {
+  display: block; font-family: 'Space Mono', monospace; font-size: 10.5px;
+  color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em;
+  margin: 10px 0 5px;
+}
+.btt-input, .btt-textarea, .btt-select {
+  width: 100%;
+  background: var(--ink);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: var(--chalk);
+  border-radius: 8px;
+  padding: 9px 11px;
+  font-family: 'Karla', sans-serif;
+  font-size: 13.5px;
+}
+.btt-textarea { min-height: 90px; resize: vertical; }
+.btt-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btt-btn {
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  background: var(--seam);
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: opacity 0.15s;
+}
+.btt-btn:hover { opacity: 0.88; }
+.btt-btn.secondary { background: var(--ink-3); }
+.btt-btn.ghost { background: transparent; border: 1px solid rgba(255,255,255,0.2); }
+.btt-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btt-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.btt-modal-overlay {
+  position: absolute; inset: 0; background: rgba(4,10,16,0.75);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 20; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.btt-modal-overlay.is-open { opacity: 1; pointer-events: auto; }
+.btt-modal {
+  background: var(--ink-2); border-radius: 14px; padding: 22px;
+  width: min(340px, 88%); border: 1px solid rgba(255,255,255,0.1);
+  transform: scale(0.96); transition: transform 0.2s;
+}
+.btt-modal-overlay.is-open .btt-modal { transform: scale(1); }
+.btt-modal h3 { font-family: 'Anton', sans-serif; margin: 0 0 4px; font-size: 20px; }
+.btt-modal p { color: var(--muted); font-size: 12.5px; margin: 0 0 12px; }
+
+.btt-admin-panel {
+  position: absolute; inset: 0;
+  background: var(--ink);
+  z-index: 15;
+  overflow-y: auto;
+  padding: 20px;
+  transform: translateY(100%);
+  transition: transform 0.25s;
+}
+.btt-admin-panel.is-open { transform: translateY(0); }
+.btt-admin-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.btt-admin-head h2 { font-family: 'Anton', sans-serif; font-size: 22px; margin: 0; }
+.btt-stop-row {
+  background: var(--ink-2); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px; padding: 12px; margin-bottom: 10px;
+}
+.btt-stop-row-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.btt-stop-row-title { font-family: 'Anton', sans-serif; font-size: 15px; }
+.btt-stop-row-meta { font-family: 'Space Mono', monospace; font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+.btt-mini-btn {
+  background: var(--ink-3); border: none; color: var(--chalk);
+  width: 26px; height: 26px; border-radius: 6px; cursor: pointer; font-size: 12px;
+}
+.btt-mini-btn.danger { background: rgba(209,85,75,0.25); }
+
+.btt-lightbox {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.92);
+  z-index: 30; display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.btt-lightbox.is-open { opacity: 1; pointer-events: auto; }
+.btt-lightbox img { max-width: 88%; max-height: 80%; border-radius: 8px; }
+.btt-lightbox-close { position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.12); border: none; color: #fff; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; }
+.btt-lightbox-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.12); border: none; color: #fff; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; font-size: 16px; }
+.btt-lightbox-nav.prev { left: 14px; }
+.btt-lightbox-nav.next { right: 14px; }
+
+.btt-toast {
+  position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%) translateY(10px);
+  background: var(--turf-light); color: #06170d; font-size: 13px; font-weight: 600;
+  padding: 9px 16px; border-radius: 100px; z-index: 40;
+  opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: none;
+}
+.btt-toast.is-visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.btt-loading {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 60px 20px; color: var(--muted); font-family: 'Space Mono', monospace; font-size: 12.5px;
+}
+.btt-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.2); border-top-color: var(--amber); border-radius: 50%; animation: btt-spin 0.7s linear infinite; }
+@keyframes btt-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 480px) {
+  .btt-header { padding: 16px 16px 10px; }
+  .btt-map-section, .btt-log-section { padding-left: 16px; padding-right: 16px; }
+  .btt-pin-label { display: none; }
+}
+</style>
+
+<div class="btt-root">
+  <div class="btt-scroll" id="bttScroll">
+    <div class="btt-header">
+      <div class="btt-title-wrap">
+        <p class="btt-eyebrow">⚾ follow the journey</p>
+        <h1 class="btt-title" id="bttTitle">THE LONG HAUL</h1>
+        <p class="btt-subtitle" id="bttSubtitle">A ballpark road trip, live from the road.</p>
+      </div>
+      <div class="btt-header-right">
+        <span class="btt-day-badge" id="bttDayBadge">STOP —</span>
+        <button class="btt-crew-btn" id="bttCrewBtn">🔒 CREW</button>
+      </div>
+    </div>
+
+    <div class="btt-sample-banner" id="bttSampleBanner" style="display:none;">
+      🚧 This is a sample itinerary. Crew members: tap "CREW" above to add your real stops, dates, and updates.
+    </div>
+
+    <div class="btt-map-section">
+      <div class="btt-map-stage" id="bttMapStage">
+        <svg class="btt-route-svg" id="bttRouteSvg" viewBox="0 0 1000 420" preserveAspectRatio="none">
+          <path id="bttRoutePathBg" d="M 40 340 C 160 340, 180 120, 300 120 S 420 320, 540 260 S 660 60, 800 90 S 940 260, 960 200"
+            fill="none" stroke="#3a2818" stroke-width="14" stroke-linecap="round" opacity="0.55"/>
+          <path id="bttRoutePath" d="M 40 340 C 160 340, 180 120, 300 120 S 420 320, 540 260 S 660 60, 800 90 S 940 260, 960 200"
+            fill="none" stroke="#D1554B" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="1 13"/>
+        </svg>
+        <div class="btt-markers-layer" id="bttMarkersLayer"></div>
+        <div class="btt-car" id="bttCar">
+          <svg viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="30" cy="32" rx="22" ry="3" fill="rgba(0,0,0,0.35)"/>
+            <path d="M6 24 L10 12 Q13 7 20 7 L38 7 Q45 7 48 13 L54 24 Z" fill="#F2B134"/>
+            <path d="M17 12 L21 8 L36 8 L41 12 Z" fill="#0B1D2E"/>
+            <rect x="4" y="21" width="52" height="6" rx="3" fill="#c98f24"/>
+            <circle class="wheel" cx="17" cy="27" r="6" fill="#111"/>
+            <circle cx="17" cy="27" r="2.4" fill="#888"/>
+            <circle class="wheel" cx="43" cy="27" r="6" fill="#111"/>
+            <circle cx="43" cy="27" r="2.4" fill="#888"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="btt-log-section">
+      <p class="btt-log-heading">The Log</p>
+      <div class="btt-log-strip" id="bttLogStrip"></div>
+    </div>
+  </div>
+
+  <div class="btt-overlay" id="bttDrawerOverlay">
+    <div class="btt-drawer" id="bttDrawer" style="position:relative;">
+      <button class="btt-drawer-close" id="bttDrawerClose">✕</button>
+      <div id="bttDrawerContent"></div>
+    </div>
+  </div>
+
+  <div class="btt-modal-overlay" id="bttPasscodeOverlay">
+    <div class="btt-modal">
+      <h3>Crew Login</h3>
+      <p>Enter the crew passcode to post updates and photos.</p>
+      <input class="btt-input" id="bttPasscodeInput" type="password" placeholder="Passcode" />
+      <p id="bttPasscodeError" style="color:#D1554B; font-size:12px; display:none; margin-top:8px;">Wrong passcode — try again.</p>
+      <div class="btt-btn-row">
+        <button class="btt-btn" id="bttPasscodeSubmit">Enter</button>
+        <button class="btt-btn ghost" id="bttPasscodeCancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="btt-admin-panel" id="bttAdminPanel">
+    <div class="btt-admin-head">
+      <h2>Crew Panel</h2>
+      <button class="btt-btn secondary" id="bttAdminClose" style="margin:0;">Done</button>
+    </div>
+    <div id="bttAdminContent"></div>
+  </div>
+
+  <div class="btt-lightbox" id="bttLightbox">
+    <button class="btt-lightbox-close" id="bttLightboxClose">✕</button>
+    <button class="btt-lightbox-nav prev" id="bttLightboxPrev">‹</button>
+    <img id="bttLightboxImg" src="" alt="" />
+    <button class="btt-lightbox-nav next" id="bttLightboxNext">›</button>
+  </div>
+
+  <div class="btt-toast" id="bttToast"></div>
+</div>
+
+<script>
+(function(){
+  const ADMIN_CODE = "HOMERUN26"; // crew: change this, then re-save the artifact
+
+  const el = (id) => document.getElementById(id);
+  const state = {
+    meta: { title: "THE EAST COAST SWING", subtitle: "Santa Clara → New York → Philadelphia → DC → Baltimore · July 2026", currentStopId: "s0", isSample: false },
+    stops: [],
+    logs: {},
+    isAdmin: false,
+    activeStopId: null,
+    lightbox: { photos: [], index: 0 }
+  };
+
+  const SAMPLE_STOPS = [
+    { id: "s0", order: 0, city: "Santa Clara", state: "CA", team: "", stadium: "Home Base", date: "2026-07-24", notes: "Trip kickoff — flying out to NYC", travelMode: "drive" },
+    { id: "s1", order: 1, city: "New York", state: "NY", team: "Mets", stadium: "Citi Field", date: "2026-07-25", notes: "Trip opener", travelMode: "flight" },
+    { id: "s2", order: 2, city: "Philadelphia", state: "PA", team: "Phillies", stadium: "Citizens Bank Park", date: "2026-07-26", notes: "2-night stay", travelMode: "drive" },
+    { id: "s3", order: 3, city: "Washington", state: "DC", team: "Nationals", stadium: "Nationals Park", date: "2026-07-29", notes: "3-night stay", travelMode: "drive" },
+    { id: "s4", order: 4, city: "Baltimore", state: "MD", team: "Orioles", stadium: "Camden Yards", date: "2026-07-31", notes: "Final stop — 2 nights, trip wraps here", travelMode: "train" }
+  ];
+
+  function travelEmoji(mode){
+    if (mode === 'flight') return '✈️';
+    if (mode === 'train') return '🚆';
+    return '🚗';
+  }
+  function travelLabel(mode){
+    if (mode === 'flight') return 'Flight';
+    if (mode === 'train') return 'Train';
+    return 'Drive';
+  }
+
+  function uid(){ return 's' + Math.random().toString(36).slice(2,9); }
+  function esc(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function fmtDate(d){
+    if(!d) return '';
+    const dt = new Date(d + 'T12:00:00');
+    if (isNaN(dt)) return d;
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+  function showToast(msg){
+    const t = el('bttToast');
+    t.textContent = msg;
+    t.classList.add('is-visible');
+    clearTimeout(showToast._h);
+    showToast._h = setTimeout(() => t.classList.remove('is-visible'), 2200);
+  }
+
+  async function safeGet(key, shared){
+    try {
+      const r = await window.storage.get(key, shared);
+      return r ? r.value : null;
+    } catch(e){ return null; }
+  }
+  async function safeSet(key, value, shared){
+    try { return await window.storage.set(key, value, shared); }
+    catch(e){ console.error('storage set failed', key, e); return null; }
+  }
+
+  async function loadAll(){
+    const metaRaw = await safeGet('trip:meta', true);
+    if (metaRaw) {
+      try { state.meta = Object.assign(state.meta, JSON.parse(metaRaw)); } catch(e){}
+    }
+    const stopsRaw = await safeGet('trip:stops', true);
+    if (stopsRaw) {
+      try { state.stops = JSON.parse(stopsRaw); } catch(e){ state.stops = []; }
+    }
+    if (!state.stops || state.stops.length === 0) {
+      state.stops = SAMPLE_STOPS;
+      state.meta.isSample = true;
+      state.meta.currentStopId = "s2";
+      await safeSet('trip:stops', JSON.stringify(state.stops), true);
+      await safeSet('trip:meta', JSON.stringify(state.meta), true);
+    }
+    state.stops.sort((a,b) => a.order - b.order);
+
+    await Promise.all(state.stops.map(async (s) => {
+      const raw = await safeGet('trip:log:' + s.id, true);
+      if (raw) {
+        try { state.logs[s.id] = JSON.parse(raw); } catch(e){ state.logs[s.id] = { text: '', photos: [] }; }
+      } else {
+        state.logs[s.id] = { text: '', photos: [] };
+      }
+    }));
+  }
+
+  function statusOf(stop){
+    if (!state.meta.currentStopId) return 'upcoming';
+    const curIdx = state.stops.findIndex(s => s.id === state.meta.currentStopId);
+    const idx = state.stops.findIndex(s => s.id === stop.id);
+    if (idx === curIdx) return 'current';
+    if (idx < curIdx) return 'visited';
+    return 'upcoming';
+  }
+
+  function layoutMap(){
+    const path = el('bttRoutePath');
+    const layer = el('bttMarkersLayer');
+    const car = el('bttCar');
+    if (!path || state.stops.length === 0) return;
+    const len = path.getTotalLength();
+    layer.innerHTML = '';
+    let curPt = null;
+    const n = state.stops.length;
+    const fracs = state.stops.map((s, i) => n === 1 ? 0 : i / (n - 1));
+
+    state.stops.forEach((stop, i) => {
+      const frac = fracs[i];
+      const pt = path.getPointAtLength(frac * len);
+      const leftPct = (pt.x / 1000) * 100;
+      const topPct = (pt.y / 420) * 100;
+      const status = statusOf(stop);
+      if (status === 'current') curPt = { leftPct, topPct };
+
+      const pin = document.createElement('div');
+      pin.className = 'btt-pin is-' + status;
+      pin.style.left = leftPct + '%';
+      pin.style.top = topPct + '%';
+      pin.innerHTML = '<div class="btt-pin-dot"></div><div class="btt-pin-label">' + esc(stop.city) + '</div>';
+      pin.addEventListener('click', () => openDrawer(stop.id));
+      layer.appendChild(pin);
+    });
+
+    for (let i = 1; i < n; i++) {
+      const midFrac = (fracs[i-1] + fracs[i]) / 2;
+      const pt = path.getPointAtLength(midFrac * len);
+      const leftPct = (pt.x / 1000) * 100;
+      const topPct = (pt.y / 420) * 100;
+      const mode = state.stops[i].travelMode || 'drive';
+      const icon = document.createElement('div');
+      icon.className = 'btt-travel';
+      icon.title = travelLabel(mode) + ' to ' + state.stops[i].city;
+      icon.style.left = leftPct + '%';
+      icon.style.top = topPct + '%';
+      icon.textContent = travelEmoji(mode);
+      layer.appendChild(icon);
+    }
+
+    if (curPt) {
+      car.style.left = curPt.leftPct + '%';
+      car.style.top = curPt.topPct + '%';
+      car.style.display = 'block';
+    } else {
+      car.style.display = 'none';
+    }
+  }
+
+  function renderHeader(){
+    el('bttTitle').textContent = state.meta.title || 'THE LONG HAUL';
+    el('bttSubtitle').textContent = state.meta.subtitle || '';
+    const curIdx = state.stops.findIndex(s => s.id === state.meta.currentStopId);
+    el('bttDayBadge').textContent = curIdx >= 0 ? ('STOP ' + (curIdx+1) + ' / ' + state.stops.length) : ('STOPS: ' + state.stops.length);
+    el('bttSampleBanner').style.display = state.meta.isSample ? 'block' : 'none';
+  }
+
+  function renderLogStrip(){
+    const strip = el('bttLogStrip');
+    strip.innerHTML = '';
+    state.stops.forEach(stop => {
+      const status = statusOf(stop);
+      const log = state.logs[stop.id] || { text: '', photos: [] };
+      const card = document.createElement('div');
+      card.className = 'btt-card is-' + status;
+      const thumb = (log.photos && log.photos[0])
+        ? '<img class="btt-card-thumb" src="' + log.photos[0] + '" alt="" />'
+        : '<div class="btt-card-thumb is-empty">⚾</div>';
+      card.innerHTML = thumb +
+        '<p class="btt-card-city">' + esc(stop.city) + '</p>' +
+        '<p class="btt-card-meta">' + esc(stop.team || '') + ' · ' + fmtDate(stop.date) + '</p>' +
+        '<span class="btt-card-status">' + status + '</span>';
+      card.addEventListener('click', () => openDrawer(stop.id));
+      strip.appendChild(card);
+    });
+  }
+
+  function renderAll(){
+    renderHeader();
+    layoutMap();
+    renderLogStrip();
+    if (el('bttAdminPanel').classList.contains('is-open')) renderAdminContent();
+  }
+
+  // ---------- Drawer ----------
+  function openDrawer(stopId){
+    state.activeStopId = stopId;
+    renderDrawer();
+    el('bttDrawerOverlay').classList.add('is-open');
+  }
+  function closeDrawer(){ el('bttDrawerOverlay').classList.remove('is-open'); }
+
+  function renderDrawer(){
+    const stop = state.stops.find(s => s.id === state.activeStopId);
+    if (!stop) return;
+    const status = statusOf(stop);
+    const log = state.logs[stop.id] || { text: '', photos: [] };
+    let html = '';
+    html += '<p class="btt-drawer-eyebrow">' + status.toUpperCase() + ' · ' + fmtDate(stop.date) + '</p>';
+    html += '<h2 class="btt-drawer-title">' + esc(stop.city) + ', ' + esc(stop.state || '') + '</h2>';
+    html += '<p class="btt-drawer-sub">' + esc(stop.team || '') + (stop.stadium ? (' @ ' + esc(stop.stadium)) : '') + '</p>';
+    if (stop.notes) {
+      html += '<p class="btt-drawer-sub" style="margin-top:-8px; color: var(--amber);">' + esc(stop.notes) + '</p>';
+    }
+
+    if (log.text) {
+      html += '<div class="btt-drawer-text">' + esc(log.text) + '</div>';
+    } else {
+      html += '<p class="btt-empty-note">No update posted yet — check back soon!</p>';
+    }
+
+    if (log.photos && log.photos.length) {
+      html += '<div class="btt-photo-grid">';
+      log.photos.forEach((p, i) => {
+        html += '<img src="' + p + '" data-idx="' + i + '" />';
+      });
+      html += '</div>';
+    }
+
+    if (state.isAdmin) {
+      html += '<hr class="btt-divider" />';
+      html += '<p class="btt-field-label">Crew tools</p>';
+      html += '<textarea class="btt-textarea" id="bttEditText" placeholder="Write today\'s update...">' + esc(log.text || '') + '</textarea>';
+      html += '<label class="btt-field-label">Add photos</label>';
+      html += '<input class="btt-input" type="file" id="bttEditPhotos" accept="image/*" multiple />';
+      html += '<div class="btt-btn-row">';
+      html += '<button class="btt-btn" id="bttSaveLog">Save update</button>';
+      html += '<button class="btt-btn secondary" id="bttSetCurrent">Set as current stop</button>';
+      html += '</div>';
+    }
+
+    el('bttDrawerContent').innerHTML = html;
+
+    el('bttDrawerContent').querySelectorAll('.btt-photo-grid img').forEach(img => {
+      img.addEventListener('click', () => openLightbox(log.photos, parseInt(img.dataset.idx, 10)));
+    });
+
+    if (state.isAdmin) {
+      el('bttSaveLog').addEventListener('click', () => saveLog(stop.id));
+      el('bttSetCurrent').addEventListener('click', () => setCurrentStop(stop.id));
+    }
+  }
+
+  async function compressImage(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxW = 1400;
+          const scale = Math.min(1, maxW / img.width);
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.72));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function saveLog(stopId){
+    const btn = el('bttSaveLog');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    const text = el('bttEditText').value;
+    const fileInput = el('bttEditPhotos');
+    const existing = (state.logs[stopId] && state.logs[stopId].photos) || [];
+    let newPhotos = [];
+    try {
+      if (fileInput.files && fileInput.files.length) {
+        newPhotos = await Promise.all(Array.from(fileInput.files).map(compressImage));
+      }
+    } catch(e){ console.error(e); }
+
+    const log = { text: text, photos: existing.concat(newPhotos), postedAt: new Date().toISOString() };
+    state.logs[stopId] = log;
+    await safeSet('trip:log:' + stopId, JSON.stringify(log), true);
+    btn.disabled = false;
+    btn.textContent = 'Save update';
+    showToast('Update saved ⚾');
+    renderDrawer();
+    renderLogStrip();
+  }
+
+  async function setCurrentStop(stopId){
+    state.meta.currentStopId = stopId;
+    state.meta.isSample = false;
+    await safeSet('trip:meta', JSON.stringify(state.meta), true);
+    showToast('Location updated 🚗');
+    renderAll();
+    renderDrawer();
+  }
+
+  // ---------- Lightbox ----------
+  function openLightbox(photos, index){
+    state.lightbox = { photos, index };
+    el('bttLightboxImg').src = photos[index];
+    el('bttLightbox').classList.add('is-open');
+  }
+  function closeLightbox(){ el('bttLightbox').classList.remove('is-open'); }
+  function stepLightbox(delta){
+    const { photos } = state.lightbox;
+    state.lightbox.index = (state.lightbox.index + delta + photos.length) % photos.length;
+    el('bttLightboxImg').src = photos[state.lightbox.index];
+  }
+
+  // ---------- Admin ----------
+  function openAdmin(){ el('bttAdminPanel').classList.add('is-open'); renderAdminContent(); }
+  function closeAdmin(){ el('bttAdminPanel').classList.remove('is-open'); }
+
+  function renderAdminContent(){
+    let html = '';
+    html += '<p class="btt-field-label">Trip settings</p>';
+    html += '<input class="btt-input" id="bttAdminTitle" value="' + esc(state.meta.title || '') + '" placeholder="Trip title" />';
+    html += '<div style="height:8px;"></div>';
+    html += '<input class="btt-input" id="bttAdminSubtitle" value="' + esc(state.meta.subtitle || '') + '" placeholder="Tagline" />';
+    html += '<button class="btt-btn secondary" id="bttSaveSettings">Save trip settings</button>';
+
+    html += '<hr class="btt-divider" />';
+    html += '<p class="btt-field-label">Stops (' + state.stops.length + ')</p>';
+    state.stops.forEach((stop, i) => {
+      const status = statusOf(stop);
+      html += '<div class="btt-stop-row">';
+      html += '<div class="btt-stop-row-top">';
+      html += '<div><div class="btt-stop-row-title">' + esc(stop.city) + ' — ' + esc(stop.team || '') + '</div>';
+      html += '<div class="btt-stop-row-meta">' + fmtDate(stop.date) + ' · ' + status + '</div></div>';
+      html += '<div class="btt-btn-row">';
+      html += '<button class="btt-mini-btn" data-up="' + stop.id + '" ' + (i===0?'disabled':'') + '>↑</button>';
+      html += '<button class="btt-mini-btn" data-down="' + stop.id + '" ' + (i===state.stops.length-1?'disabled':'') + '>↓</button>';
+      html += '<button class="btt-mini-btn danger" data-del="' + stop.id + '">✕</button>';
+      html += '</div></div>';
+      if (i > 0) {
+        const mode = stop.travelMode || 'drive';
+        html += '<div style="margin-top:8px;">';
+        html += '<label class="btt-field-label" style="margin:0 0 4px;">Travel to get here</label>';
+        html += '<select class="btt-select" data-mode="' + stop.id + '">';
+        ['drive','flight','train'].forEach(m => {
+          html += '<option value="' + m + '"' + (m===mode?' selected':'') + '>' + travelEmoji(m) + ' ' + travelLabel(m) + '</option>';
+        });
+        html += '</select></div>';
+      }
+      html += '</div>';
+    });
+
+    html += '<hr class="btt-divider" />';
+    html += '<p class="btt-field-label">Add a stop</p>';
+    html += '<div class="btt-row2"><input class="btt-input" id="bttNewCity" placeholder="City" />';
+    html += '<input class="btt-input" id="bttNewState" placeholder="State" /></div>';
+    html += '<div class="btt-row2" style="margin-top:8px;"><input class="btt-input" id="bttNewTeam" placeholder="Team" />';
+    html += '<input class="btt-input" id="bttNewStadium" placeholder="Stadium" /></div>';
+    html += '<div class="btt-row2" style="margin-top:8px;"><input class="btt-input" id="bttNewDate" type="date" />';
+    html += '<input class="btt-input" id="bttNewNotes" placeholder="Notes (e.g. 2-night stay)" /></div>';
+    html += '<label class="btt-field-label">How you get here from the last stop</label>';
+    html += '<select class="btt-select" id="bttNewMode">';
+    ['drive','flight','train'].forEach(m => {
+      html += '<option value="' + m + '"' + (m==='drive'?' selected':'') + '>' + travelEmoji(m) + ' ' + travelLabel(m) + '</option>';
+    });
+    html += '</select>';
+    html += '<button class="btt-btn" id="bttAddStop">Add stop</button>';
+
+    html += '<hr class="btt-divider" />';
+    html += '<button class="btt-btn ghost" id="bttLogout">Log out of crew mode</button>';
+
+    el('bttAdminContent').innerHTML = html;
+
+    el('bttSaveSettings').addEventListener('click', async () => {
+      state.meta.title = el('bttAdminTitle').value || 'THE LONG HAUL';
+      state.meta.subtitle = el('bttAdminSubtitle').value || '';
+      await safeSet('trip:meta', JSON.stringify(state.meta), true);
+      showToast('Trip settings saved');
+      renderHeader();
+    });
+
+    el('bttAdminContent').querySelectorAll('[data-up]').forEach(b => b.addEventListener('click', () => moveStop(b.dataset.up, -1)));
+    el('bttAdminContent').querySelectorAll('[data-down]').forEach(b => b.addEventListener('click', () => moveStop(b.dataset.down, 1)));
+    el('bttAdminContent').querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => deleteStop(b.dataset.del)));
+    el('bttAdminContent').querySelectorAll('[data-mode]').forEach(s => s.addEventListener('change', () => updateTravelMode(s.dataset.mode, s.value)));
+    el('bttAddStop').addEventListener('click', addStop);
+    el('bttLogout').addEventListener('click', () => {
+      state.isAdmin = false;
+      closeAdmin();
+      showToast('Logged out of crew mode');
+    });
+  }
+
+  async function persistStops(){
+    state.stops.forEach((s, i) => s.order = i);
+    await safeSet('trip:stops', JSON.stringify(state.stops), true);
+  }
+
+  async function moveStop(id, dir){
+    const idx = state.stops.findIndex(s => s.id === id);
+    const swapIdx = idx + dir;
+    if (swapIdx < 0 || swapIdx >= state.stops.length) return;
+    [state.stops[idx], state.stops[swapIdx]] = [state.stops[swapIdx], state.stops[idx]];
+    await persistStops();
+    renderAdminContent();
+    renderAll();
+  }
+
+  async function updateTravelMode(id, mode){
+    const stop = state.stops.find(s => s.id === id);
+    if (!stop) return;
+    stop.travelMode = mode;
+    await persistStops();
+    showToast('Travel mode updated');
+    layoutMap();
+  }
+
+  async function deleteStop(id){
+    if (!confirm('Remove this stop? This cannot be undone.')) return;
+    state.stops = state.stops.filter(s => s.id !== id);
+    await persistStops();
+    showToast('Stop removed');
+    renderAdminContent();
+    renderAll();
+  }
+
+  async function addStop(){
+    const city = el('bttNewCity').value.trim();
+    if (!city) { showToast('City is required'); return; }
+    const stop = {
+      id: uid(),
+      order: state.stops.length,
+      city,
+      state: el('bttNewState').value.trim(),
+      team: el('bttNewTeam').value.trim(),
+      stadium: el('bttNewStadium').value.trim(),
+      date: el('bttNewDate').value,
+      notes: el('bttNewNotes').value.trim(),
+      travelMode: el('bttNewMode').value
+    };
+    state.stops.push(stop);
+    state.logs[stop.id] = { text: '', photos: [] };
+    state.meta.isSample = false;
+    await persistStops();
+    await safeSet('trip:meta', JSON.stringify(state.meta), true);
+    showToast('Stop added');
+    ['bttNewCity','bttNewState','bttNewTeam','bttNewStadium','bttNewDate','bttNewNotes'].forEach(id => el(id).value = '');
+    renderAdminContent();
+    renderAll();
+  }
+
+  // ---------- Passcode ----------
+  function openPasscode(){
+    el('bttPasscodeOverlay').classList.add('is-open');
+    el('bttPasscodeError').style.display = 'none';
+    el('bttPasscodeInput').value = '';
+    setTimeout(() => el('bttPasscodeInput').focus(), 50);
+  }
+  function closePasscode(){ el('bttPasscodeOverlay').classList.remove('is-open'); }
+  function submitPasscode(){
+    if (el('bttPasscodeInput').value === ADMIN_CODE) {
+      state.isAdmin = true;
+      closePasscode();
+      openAdmin();
+      showToast('Welcome back, crew ⚾');
+    } else {
+      el('bttPasscodeError').style.display = 'block';
+    }
+  }
+
+  // ---------- Wire up ----------
+  function bindEvents(){
+    el('bttCrewBtn').addEventListener('click', () => state.isAdmin ? openAdmin() : openPasscode());
+    el('bttDrawerClose').addEventListener('click', closeDrawer);
+    el('bttDrawerOverlay').addEventListener('click', (e) => { if (e.target === el('bttDrawerOverlay')) closeDrawer(); });
+    el('bttPasscodeSubmit').addEventListener('click', submitPasscode);
+    el('bttPasscodeCancel').addEventListener('click', closePasscode);
+    el('bttPasscodeInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') submitPasscode(); });
+    el('bttAdminClose').addEventListener('click', closeAdmin);
+    el('bttLightboxClose').addEventListener('click', closeLightbox);
+    el('bttLightboxPrev').addEventListener('click', () => stepLightbox(-1));
+    el('bttLightboxNext').addEventListener('click', () => stepLightbox(1));
+    window.addEventListener('resize', () => layoutMap());
+  }
+
+  async function init(){
+    el('bttMarkersLayer').innerHTML = '';
+    document.querySelector('.btt-root').insertAdjacentHTML('afterbegin', '');
+    const stage = el('bttMapStage');
+    const loadingEl = document.createElement('div');
+    loadingEl.className = 'btt-loading';
+    loadingEl.innerHTML = '<div class="btt-spinner"></div> Loading the trip...';
+    stage.parentElement.appendChild(loadingEl);
+
+    await loadAll();
+    loadingEl.remove();
+
+    bindEvents();
+    renderAll();
+  }
+
+  init();
+})();
+</script>
