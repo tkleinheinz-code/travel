@@ -59,6 +59,18 @@ body{font-family:var(--font-b);background:var(--bg);min-height:100vh;color:var(-
 .setup-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:1rem}
 .setup-hint{font-size:11px;color:var(--text2);line-height:1.5;margin-top:12px;padding:10px;background:var(--bg3);border-radius:var(--radius)}
 .setup-hint code{font-family:var(--font-m);font-size:11px;background:var(--border);padding:1px 4px;border-radius:3px}
+
+/* ── countdown ── */
+.countdown-wrap{background:var(--green);border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:1.2rem;color:#fff;text-align:center}
+.countdown-title{font-family:var(--font-m);font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.8;margin-bottom:6px}
+.countdown-units{display:flex;justify-content:center;gap:10px;margin-bottom:6px}
+.countdown-unit{display:flex;flex-direction:column;align-items:center;min-width:48px}
+.countdown-num{font-family:var(--font-d);font-size:2.2rem;line-height:1;letter-spacing:.04em}
+.countdown-lbl{font-family:var(--font-m);font-size:9px;letter-spacing:.1em;opacity:.75;margin-top:2px;text-transform:uppercase}
+.countdown-sep{font-family:var(--font-d);font-size:2rem;opacity:.5;align-self:flex-start;padding-top:2px}
+.countdown-sub{font-family:var(--font-m);font-size:11px;opacity:.75}
+.countdown-wrap.started{background:var(--red)}
+.countdown-wrap.done{background:#1a4731}
 /* ── trip-code screen ── */
 .tc-overlay{display:none;position:fixed;inset:0;background:var(--green);z-index:300;align-items:center;justify-content:center;padding:1.5rem}
 .tc-overlay.open{display:flex}
@@ -263,6 +275,19 @@ body{font-family:var(--font-b);background:var(--bg);min-height:100vh;color:var(-
 </div>
 
 <div id="pane-itinerary" class="pane on">
+  <div id="countdown-wrap" class="countdown-wrap" style="display:none">
+    <div class="countdown-title" id="countdown-title">Trip starts in</div>
+    <div class="countdown-units">
+      <div class="countdown-unit"><div class="countdown-num" id="cd-days">--</div><div class="countdown-lbl">Days</div></div>
+      <div class="countdown-sep">:</div>
+      <div class="countdown-unit"><div class="countdown-num" id="cd-hours">--</div><div class="countdown-lbl">Hours</div></div>
+      <div class="countdown-sep">:</div>
+      <div class="countdown-unit"><div class="countdown-num" id="cd-mins">--</div><div class="countdown-lbl">Mins</div></div>
+      <div class="countdown-sep">:</div>
+      <div class="countdown-unit"><div class="countdown-num" id="cd-secs">--</div><div class="countdown-lbl">Secs</div></div>
+    </div>
+    <div class="countdown-sub" id="countdown-sub"></div>
+  </div>
   <div class="row-hd">
     <div class="sec-hd">Schedule</div>
     <button class="btn-ghost" onclick="openDayModal()"><i class="ti ti-plus"></i>Add day</button>
@@ -1039,6 +1064,71 @@ function renderMap(){
   el.innerHTML=html;
 }
 window.renderMap=renderMap;
+
+
+// ── Countdown timer ───────────────────────────────────────────
+let _cdTimer=null;
+function startCountdown(){
+  if(_cdTimer)clearInterval(_cdTimer);
+  function tick(){
+    const wrap=document.getElementById('countdown-wrap');
+    if(!wrap)return;
+    // Get first day date
+    const days=S.days.filter(d=>d&&d.date).sort((a,b)=>a.date.localeCompare(b.date));
+    const lastDay=S.days.filter(d=>d&&d.date).sort((a,b)=>b.date.localeCompare(a.date))[0];
+    if(!days.length){wrap.style.display='none';return;}
+    wrap.style.display='block';
+    const start=new Date(days[0].date+'T00:00:00');
+    const end=lastDay?new Date(lastDay.date+'T23:59:59'):start;
+    const now=new Date();
+    const title=document.getElementById('countdown-title');
+    const sub=document.getElementById('countdown-sub');
+    const tripName=S.trip&&S.trip.name?S.trip.name:'your trip';
+    if(now<start){
+      // Before trip
+      wrap.className='countdown-wrap';
+      title.textContent='Trip starts in';
+      const diff=start-now;
+      const d=Math.floor(diff/86400000);
+      const h=Math.floor((diff%86400000)/3600000);
+      const m=Math.floor((diff%3600000)/60000);
+      const s=Math.floor((diff%60000)/1000);
+      document.getElementById('cd-days').textContent=String(d).padStart(2,'0');
+      document.getElementById('cd-hours').textContent=String(h).padStart(2,'0');
+      document.getElementById('cd-mins').textContent=String(m).padStart(2,'0');
+      document.getElementById('cd-secs').textContent=String(s).padStart(2,'0');
+      sub.textContent=d===0?'Tomorrow is the day! ⚾':'Pack your bags and grab your tickets!';
+    } else if(now<=end){
+      // Trip in progress
+      wrap.className='countdown-wrap started';
+      title.textContent='Trip is happening now! ⚾';
+      const diff=end-now;
+      const d=Math.floor(diff/86400000);
+      const h=Math.floor((diff%86400000)/3600000);
+      const m=Math.floor((diff%3600000)/60000);
+      const s=Math.floor((diff%60000)/1000);
+      document.getElementById('cd-days').textContent=String(d).padStart(2,'0');
+      document.getElementById('cd-hours').textContent=String(h).padStart(2,'0');
+      document.getElementById('cd-mins').textContent=String(m).padStart(2,'0');
+      document.getElementById('cd-secs').textContent=String(s).padStart(2,'0');
+      sub.textContent=d===1?'Last day tomorrow — enjoy every moment!':d===0?'Last day — soak it all in!':'Days remaining on the trip';
+    } else {
+      // Trip over
+      wrap.className='countdown-wrap done';
+      title.textContent='Trip complete! 🏆';
+      document.getElementById('cd-days').textContent='00';
+      document.getElementById('cd-hours').textContent='00';
+      document.getElementById('cd-mins').textContent='00';
+      document.getElementById('cd-secs').textContent='00';
+      sub.textContent='What an adventure. See you at the ballpark next time!';
+      clearInterval(_cdTimer);
+      return;
+    }
+  }
+  tick();
+  _cdTimer=setInterval(tick,1000);
+}
+window.startCountdown=startCountdown;
 
 // ── Boot ──────────────────────────────────────────────────────
 const BAKED_CONFIG = {
