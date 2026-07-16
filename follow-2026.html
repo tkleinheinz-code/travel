@@ -245,8 +245,10 @@
   text-transform: uppercase;
   color: var(--muted);
 }
-.btt-card-city { font-family: 'Anton', sans-serif; font-size: 15px; letter-spacing: 0.01em; margin: 0; }
-.btt-card-meta { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); margin: 4px 0 0; }
+.btt-card-date { font-family: 'Anton', sans-serif; font-size: 16px; letter-spacing: 0.01em; margin: 0; }
+.btt-card-city { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); margin: 3px 0 0; text-transform: uppercase; letter-spacing: 0.04em; }
+.btt-card-tag { font-size: 11px; color: var(--muted); margin: 5px 0 0; }
+.btt-card-tag.is-game { color: var(--amber); font-weight: 600; }
 .btt-card-status {
   display: inline-block;
   margin-top: 6px;
@@ -586,12 +588,31 @@
   };
 
   const SAMPLE_STOPS = [
-    { id: "s0", order: 0, city: "Santa Clara", state: "CA", team: "", stadium: "Home Base", date: "2026-07-24", notes: "Trip kickoff — flying out to NYC", travelMode: "drive" },
-    { id: "s1", order: 1, city: "New York", state: "NY", team: "Mets", stadium: "Citi Field", date: "2026-07-25", notes: "Trip opener", travelMode: "flight" },
-    { id: "s2", order: 2, city: "Philadelphia", state: "PA", team: "Phillies", stadium: "Citizens Bank Park", date: "2026-07-26", notes: "2-night stay", travelMode: "drive" },
-    { id: "s3", order: 3, city: "Washington", state: "DC", team: "Nationals", stadium: "Nationals Park", date: "2026-07-29", notes: "3-night stay", travelMode: "drive" },
-    { id: "s4", order: 4, city: "Baltimore", state: "MD", team: "Orioles", stadium: "Camden Yards", date: "2026-07-31", notes: "Final stop — 2 nights, trip wraps here", travelMode: "train" }
+    { id: "s0", order: 0, city: "Santa Clara", state: "CA", team: "", stadium: "Home Base", date: "2026-07-24", days: 1, gameDate: null, notes: "Trip kickoff — flying out to NYC", travelMode: "drive" },
+    { id: "s1", order: 1, city: "New York", state: "NY", team: "Mets", stadium: "Citi Field", date: "2026-07-25", days: 1, gameDate: "2026-07-25", notes: "Trip opener", travelMode: "flight" },
+    { id: "s2", order: 2, city: "Philadelphia", state: "PA", team: "Phillies", stadium: "Citizens Bank Park", date: "2026-07-26", days: 2, gameDate: "2026-07-26", notes: "2-night stay", travelMode: "drive" },
+    { id: "s3", order: 3, city: "Washington", state: "DC", team: "Nationals", stadium: "Nationals Park", date: "2026-07-28", days: 3, gameDate: "2026-07-29", notes: "3-night stay", travelMode: "drive" },
+    { id: "s4", order: 4, city: "Baltimore", state: "MD", team: "Orioles", stadium: "Camden Yards", date: "2026-07-31", days: 1, gameDate: "2026-07-31", notes: "Final stop", travelMode: "train" }
   ];
+
+  function addDaysToDate(dateStr, n){
+    const d = new Date(dateStr + 'T12:00:00');
+    d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function generateDayBoxes(){
+    const boxes = [];
+    state.stops.forEach(stop => {
+      const total = stop.days || 1;
+      for (let i = 0; i < total; i++) {
+        const date = addDaysToDate(stop.date, i);
+        const gameDate = stop.gameDate || stop.date;
+        boxes.push({ date, stop, dayNumber: i + 1, totalDays: total, isGameDay: !!stop.team && date === gameDate });
+      }
+    });
+    return boxes;
+  }
 
   function travelEmoji(mode){
     if (mode === 'flight') return '✈️';
@@ -731,7 +752,9 @@
   function renderLogStrip(){
     const strip = el('bttLogStrip');
     strip.innerHTML = '';
-    state.stops.forEach(stop => {
+    const boxes = generateDayBoxes();
+    boxes.forEach(day => {
+      const stop = day.stop;
       const status = statusOf(stop);
       const log = state.logs[stop.id] || { text: '', photos: [] };
       const card = document.createElement('div');
@@ -739,9 +762,14 @@
       const thumb = (log.photos && log.photos[0])
         ? '<img class="btt-card-thumb" src="' + log.photos[0] + '" alt="" />'
         : '<div class="btt-card-thumb is-empty"><span>⚾</span><span class="btt-card-thumb-label">Update &amp; Photos</span></div>';
+      let tagText;
+      if (!stop.team) tagText = '🏠 Home base';
+      else if (day.isGameDay) tagText = '🎟️ Game day';
+      else tagText = 'Day ' + day.dayNumber + ' of ' + day.totalDays;
       card.innerHTML = thumb +
+        '<p class="btt-card-date">' + fmtDate(day.date) + '</p>' +
         '<p class="btt-card-city">' + esc(stop.city) + '</p>' +
-        '<p class="btt-card-meta">' + esc(stop.team || '') + ' · ' + fmtDate(stop.date) + '</p>' +
+        '<p class="btt-card-tag' + (day.isGameDay ? ' is-game' : '') + '">' + tagText + '</p>' +
         '<span class="btt-card-status">' + status + '</span>';
       card.addEventListener('click', () => openDrawer(stop.id));
       strip.appendChild(card);
@@ -902,12 +930,20 @@
       html += '<div class="btt-stop-row">';
       html += '<div class="btt-stop-row-top">';
       html += '<div><div class="btt-stop-row-title">' + esc(stop.city) + ' — ' + esc(stop.team || '') + '</div>';
-      html += '<div class="btt-stop-row-meta">' + fmtDate(stop.date) + ' · ' + status + '</div></div>';
+      html += '<div class="btt-stop-row-meta">' + fmtDate(stop.date) + ' · ' + (stop.days || 1) + ' day(s) · ' + status + '</div></div>';
       html += '<div class="btt-btn-row">';
       html += '<button class="btt-mini-btn" data-up="' + stop.id + '" ' + (i===0?'disabled':'') + '>↑</button>';
       html += '<button class="btt-mini-btn" data-down="' + stop.id + '" ' + (i===state.stops.length-1?'disabled':'') + '>↓</button>';
       html += '<button class="btt-mini-btn danger" data-del="' + stop.id + '">✕</button>';
       html += '</div></div>';
+      html += '<div class="btt-row2" style="margin-top:8px;">';
+      html += '<div><label class="btt-field-label" style="margin:0 0 4px;">Days here</label>';
+      html += '<input class="btt-input" type="number" min="1" value="' + (stop.days || 1) + '" data-days="' + stop.id + '" /></div>';
+      if (stop.team) {
+        html += '<div><label class="btt-field-label" style="margin:0 0 4px;">Game day</label>';
+        html += '<input class="btt-input" type="date" value="' + esc(stop.gameDate || stop.date) + '" data-gamedate="' + stop.id + '" /></div>';
+      }
+      html += '</div>';
       if (i > 0) {
         const mode = stop.travelMode || 'drive';
         html += '<div style="margin-top:8px;">';
@@ -929,6 +965,8 @@
     html += '<input class="btt-input" id="bttNewStadium" placeholder="Stadium" /></div>';
     html += '<div class="btt-row2" style="margin-top:8px;"><input class="btt-input" id="bttNewDate" type="date" />';
     html += '<input class="btt-input" id="bttNewNotes" placeholder="Notes (e.g. 2-night stay)" /></div>';
+    html += '<label class="btt-field-label">How many days here</label>';
+    html += '<input class="btt-input" type="number" min="1" value="1" id="bttNewDays" />';
     html += '<label class="btt-field-label">How you get here from the last stop</label>';
     html += '<select class="btt-select" id="bttNewMode">';
     ['drive','flight','train'].forEach(m => {
@@ -954,6 +992,8 @@
     el('bttAdminContent').querySelectorAll('[data-down]').forEach(b => b.addEventListener('click', () => moveStop(b.dataset.down, 1)));
     el('bttAdminContent').querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => deleteStop(b.dataset.del)));
     el('bttAdminContent').querySelectorAll('[data-mode]').forEach(s => s.addEventListener('change', () => updateTravelMode(s.dataset.mode, s.value)));
+    el('bttAdminContent').querySelectorAll('[data-days]').forEach(s => s.addEventListener('change', () => updateStopDays(s.dataset.days, s.value)));
+    el('bttAdminContent').querySelectorAll('[data-gamedate]').forEach(s => s.addEventListener('change', () => updateGameDate(s.dataset.gamedate, s.value)));
     el('bttAddStop').addEventListener('click', addStop);
     el('bttLogout').addEventListener('click', () => {
       state.isAdmin = false;
@@ -986,6 +1026,26 @@
     layoutMap();
   }
 
+  async function updateStopDays(id, value){
+    const stop = state.stops.find(s => s.id === id);
+    if (!stop) return;
+    const n = Math.max(1, parseInt(value, 10) || 1);
+    stop.days = n;
+    await persistStops();
+    showToast('Days updated');
+    renderAll();
+    renderAdminContent();
+  }
+
+  async function updateGameDate(id, value){
+    const stop = state.stops.find(s => s.id === id);
+    if (!stop) return;
+    stop.gameDate = value;
+    await persistStops();
+    showToast('Game day updated');
+    renderAll();
+  }
+
   async function deleteStop(id){
     if (!confirm('Remove this stop? This cannot be undone.')) return;
     state.stops = state.stops.filter(s => s.id !== id);
@@ -998,6 +1058,7 @@
   async function addStop(){
     const city = el('bttNewCity').value.trim();
     if (!city) { showToast('City is required'); return; }
+    const dateVal = el('bttNewDate').value;
     const stop = {
       id: uid(),
       order: state.stops.length,
@@ -1005,7 +1066,9 @@
       state: el('bttNewState').value.trim(),
       team: el('bttNewTeam').value.trim(),
       stadium: el('bttNewStadium').value.trim(),
-      date: el('bttNewDate').value,
+      date: dateVal,
+      days: Math.max(1, parseInt(el('bttNewDays').value, 10) || 1),
+      gameDate: dateVal,
       notes: el('bttNewNotes').value.trim(),
       travelMode: el('bttNewMode').value
     };
@@ -1015,7 +1078,7 @@
     await persistStops();
     await safeSet('trip:meta', JSON.stringify(state.meta), true);
     showToast('Stop added');
-    ['bttNewCity','bttNewState','bttNewTeam','bttNewStadium','bttNewDate','bttNewNotes'].forEach(id => el(id).value = '');
+    ['bttNewCity','bttNewState','bttNewTeam','bttNewStadium','bttNewDate','bttNewNotes','bttNewDays'].forEach(id => el(id).value = '');
     renderAdminContent();
     renderAll();
   }
