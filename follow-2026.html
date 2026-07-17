@@ -185,6 +185,39 @@
 
 /* ---------- Log strip ---------- */
 .btt-log-section { padding: 16px 22px 22px; }
+.btt-countdown {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(135deg, rgba(242,177,52,0.14), rgba(209,85,75,0.10));
+  border: 1px solid rgba(242,177,52,0.28);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.btt-countdown-num {
+  font-family: 'Anton', sans-serif;
+  font-size: 32px;
+  color: var(--amber);
+  line-height: 1;
+  min-width: 44px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.btt-countdown-body { min-width: 0; }
+.btt-countdown-label {
+  font-size: 13px;
+  color: var(--chalk);
+  line-height: 1.35;
+  margin: 0;
+}
+.btt-countdown-sub {
+  display: block;
+  font-family: 'Space Mono', monospace;
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
 .btt-log-heading-row {
   display: flex;
   align-items: baseline;
@@ -526,6 +559,7 @@
     </div>
 
     <div class="btt-log-section">
+      <div class="btt-countdown" id="bttCountdown"></div>
       <div class="btt-log-heading-row">
         <span class="btt-log-heading-icon">⚾</span>
         <p class="btt-log-heading">The Log</p>
@@ -576,6 +610,11 @@
 <script>
 (function(){
   const ADMIN_CODE = "HOMERUN26"; // crew: change this, then re-save the artifact
+
+  // ---- Firebase Realtime Database (needed because this is hosted on GitHub Pages, ----
+  // ---- which is static-only and has no storage of its own). See setup notes at the ----
+  // ---- bottom of this file for how to get this URL. Leave blank to run with no saving. ----
+  const FIREBASE_DB_URL = "https://console.firebase.google.com/project/follow-2026/database/follow-2026-default-rtdb/data/~2F"; // <-- paste yours here
 
   const el = (id) => document.getElementById(id);
   const state = {
@@ -641,15 +680,29 @@
     showToast._h = setTimeout(() => t.classList.remove('is-visible'), 2200);
   }
 
-  async function safeGet(key, shared){
-    try {
-      const r = await window.storage.get(key, shared);
-      return r ? r.value : null;
-    } catch(e){ return null; }
+  function fbConfigured(){
+    return FIREBASE_DB_URL && !FIREBASE_DB_URL.includes('YOUR-PROJECT');
   }
-  async function safeSet(key, value, shared){
-    try { return await window.storage.set(key, value, shared); }
-    catch(e){ console.error('storage set failed', key, e); return null; }
+
+  async function safeGet(key /*, shared - kept for signature compatibility, unused */){
+    if (!fbConfigured()) return null;
+    try {
+      const res = await fetch(FIREBASE_DB_URL + '/keys/' + encodeURIComponent(key) + '.json');
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data ? data.value : null;
+    } catch(e){ console.error('storage get failed', key, e); return null; }
+  }
+  async function safeSet(key, value /*, shared - unused */){
+    if (!fbConfigured()) { console.warn('Firebase not configured — changes will not be saved.'); return null; }
+    try {
+      const res = await fetch(FIREBASE_DB_URL + '/keys/' + encodeURIComponent(key) + '.json', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value })
+      });
+      return res.ok ? true : null;
+    } catch(e){ console.error('storage set failed', key, e); return null; }
   }
 
   async function loadAll(){
@@ -776,9 +829,61 @@
     });
   }
 
+  function localDateStr(d){
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+    return y + '-' + m + '-' + day;
+  }
+  function daysBetween(dateStr1, dateStr2){
+    const d1 = new Date(dateStr1 + 'T00:00:00');
+    const d2 = new Date(dateStr2 + 'T00:00:00');
+    return Math.round((d2 - d1) / 86400000);
+  }
+
+  function renderCountdown(){
+    const box = el('bttCountdown');
+    if (!box) return;
+    const boxes = generateDayBoxes();
+    if (!boxes.length) { box.style.display = 'none'; return; }
+    box.style.display = 'flex';
+    const todayStr = localDateStr(new Date());
+    const first = boxes[0];
+    const last = boxes[boxes.length - 1];
+    let html = '';
+
+    if (todayStr < first.date) {
+      const n = daysBetween(todayStr, first.date);
+      html = '<div class="btt-countdown-num">' + n + '</div>' +
+        '<div class="btt-countdown-body"><p class="btt-countdown-label">day' + (n === 1 ? '' : 's') + ' until we hit the road' +
+        '<span class="btt-countdown-sub">First stop: ' + esc(first.stop.city) + ' · ' + fmtDate(first.date) + '</span></p></div>';
+    } else if (todayStr > last.date) {
+      html = '<div class="btt-countdown-num">🏁</div>' +
+        '<div class="btt-countdown-body"><p class="btt-countdown-label">The trip has wrapped!' +
+        '<span class="btt-countdown-sub">Thanks for following along</span></p></div>';
+    } else {
+      const nextGame = boxes.find(b => b.isGameDay && b.date >= todayStr);
+      if (nextGame && nextGame.date === todayStr) {
+        html = '<div class="btt-countdown-num">⚾</div>' +
+          '<div class="btt-countdown-body"><p class="btt-countdown-label">Game day in ' + esc(nextGame.stop.city) + '!' +
+          '<span class="btt-countdown-sub">' + fmtDate(nextGame.date) + '</span></p></div>';
+      } else if (nextGame) {
+        const n = daysBetween(todayStr, nextGame.date);
+        html = '<div class="btt-countdown-num">' + n + '</div>' +
+          '<div class="btt-countdown-body"><p class="btt-countdown-label">day' + (n === 1 ? '' : 's') + ' until the next game' +
+          '<span class="btt-countdown-sub">' + esc(nextGame.stop.city) + ' · ' + fmtDate(nextGame.date) + '</span></p></div>';
+      } else {
+        const dayNum = daysBetween(first.date, todayStr) + 1;
+        html = '<div class="btt-countdown-num">🚗</div>' +
+          '<div class="btt-countdown-body"><p class="btt-countdown-label">On the road' +
+          '<span class="btt-countdown-sub">Day ' + dayNum + ' of ' + boxes.length + '</span></p></div>';
+      }
+    }
+    box.innerHTML = html;
+  }
+
   function renderAll(){
     renderHeader();
     layoutMap();
+    renderCountdown();
     renderLogStrip();
     if (el('bttAdminPanel').classList.contains('is-open')) renderAdminContent();
   }
@@ -1131,6 +1236,9 @@
 
     bindEvents();
     renderAll();
+    if (!fbConfigured()) {
+      setTimeout(() => showToast('⚠️ No database connected yet — changes won\'t be saved'), 600);
+    }
   }
 
   init();
