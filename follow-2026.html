@@ -614,7 +614,7 @@
   // ---- Firebase Realtime Database (needed because this is hosted on GitHub Pages, ----
   // ---- which is static-only and has no storage of its own). See setup notes at the ----
   // ---- bottom of this file for how to get this URL. Leave blank to run with no saving. ----
-  const FIREBASE_DB_URL = "https://follow-2026-default-rtdb.firebaseio.com"; // <-- paste yours here
+  const FIREBASE_DB_URL = "https://follow-2026-default-rtdb.firebaseio.com/"; // <-- paste yours here
 
   const el = (id) => document.getElementById(id);
   const state = {
@@ -683,12 +683,18 @@
   function fbConfigured(){
     return FIREBASE_DB_URL && !FIREBASE_DB_URL.includes('YOUR-PROJECT');
   }
+  function fbBase(){
+    return FIREBASE_DB_URL.replace(/\/+$/, ''); // strip trailing slash(es) so we never build a double slash
+  }
 
   async function safeGet(key /*, shared - kept for signature compatibility, unused */){
     if (!fbConfigured()) return null;
     try {
-      const res = await fetch(FIREBASE_DB_URL + '/keys/' + encodeURIComponent(key) + '.json');
-      if (!res.ok) return null;
+      const res = await fetch(fbBase() + '/keys/' + encodeURIComponent(key) + '.json');
+      if (!res.ok) {
+        console.error('storage get failed', key, res.status, await res.text().catch(() => ''));
+        return null;
+      }
       const data = await res.json();
       return data ? data.value : null;
     } catch(e){ console.error('storage get failed', key, e); return null; }
@@ -696,12 +702,16 @@
   async function safeSet(key, value /*, shared - unused */){
     if (!fbConfigured()) { console.warn('Firebase not configured — changes will not be saved.'); return null; }
     try {
-      const res = await fetch(FIREBASE_DB_URL + '/keys/' + encodeURIComponent(key) + '.json', {
+      const res = await fetch(fbBase() + '/keys/' + encodeURIComponent(key) + '.json', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ value })
       });
-      return res.ok ? true : null;
+      if (!res.ok) {
+        console.error('storage set failed', key, res.status, await res.text().catch(() => ''));
+        return null;
+      }
+      return true;
     } catch(e){ console.error('storage set failed', key, e); return null; }
   }
 
@@ -986,10 +996,10 @@
 
     const log = { text: text, photos: existing.concat(newPhotos), postedAt: new Date().toISOString() };
     state.logs[stopId] = log;
-    await safeSet('trip:log:' + stopId, JSON.stringify(log), true);
+    const saved = await safeSet('trip:log:' + stopId, JSON.stringify(log), true);
     btn.disabled = false;
     btn.textContent = 'Save update';
-    showToast('Update saved ⚾');
+    showToast(saved ? 'Update saved ⚾' : '⚠️ Save failed — check your database rules');
     renderDrawer();
     renderLogStrip();
   }
@@ -997,8 +1007,8 @@
   async function setCurrentStop(stopId){
     state.meta.currentStopId = stopId;
     state.meta.isSample = false;
-    await safeSet('trip:meta', JSON.stringify(state.meta), true);
-    showToast('Location updated 🚗');
+    const saved = await safeSet('trip:meta', JSON.stringify(state.meta), true);
+    showToast(saved ? 'Location updated 🚗' : '⚠️ Save failed — check your database rules');
     renderAll();
     renderDrawer();
   }
