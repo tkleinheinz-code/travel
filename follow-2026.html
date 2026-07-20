@@ -688,16 +688,18 @@
   }
 
   async function safeGet(key /*, shared - kept for signature compatibility, unused */){
-    if (!fbConfigured()) return null;
-    try {
-      const res = await fetch(fbBase() + '/keys/' + encodeURIComponent(key) + '.json');
-      if (!res.ok) {
-        console.error('storage get failed', key, res.status, await res.text().catch(() => ''));
-        return null;
-      }
-      const data = await res.json();
-      return data ? data.value : null;
-    } catch(e){ console.error('storage get failed', key, e); return null; }
+    // Throws on failure (network error, bad permissions, etc.) instead of
+    // returning null, so callers can tell "confirmed empty" apart from
+    // "couldn't check" — that distinction matters so we never mistake a
+    // failed read for an empty database and overwrite real trip data.
+    if (!fbConfigured()) throw new Error('Firebase not configured');
+    const res = await fetch(fbBase() + '/keys/' + encodeURIComponent(key) + '.json');
+    if (!res.ok) {
+      console.error('storage get failed', key, res.status, await res.text().catch(() => ''));
+      throw new Error('Firebase read failed: ' + res.status);
+    }
+    const data = await res.json();
+    return data ? data.value : null;
   }
   async function safeSet(key, value /*, shared - unused */){
     if (!fbConfigured()) { console.warn('Firebase not configured — changes will not be saved.'); return null; }
@@ -716,28 +718,47 @@
   }
 
   async function loadAll(){
-    const metaRaw = await safeGet('trip:meta', true);
+    let metaRaw = null, stopsRaw = null, readFailed = false;
+
+    try { metaRaw = await safeGet('trip:meta'); }
+    catch(e){ readFailed = true; console.error('could not load trip:meta', e); }
+
     if (metaRaw) {
       try { state.meta = Object.assign(state.meta, JSON.parse(metaRaw)); } catch(e){}
     }
-    const stopsRaw = await safeGet('trip:stops', true);
+
+    try { stopsRaw = await safeGet('trip:stops'); }
+    catch(e){ readFailed = true; console.error('could not load trip:stops', e); }
+
     if (stopsRaw) {
       try { state.stops = JSON.parse(stopsRaw); } catch(e){ state.stops = []; }
     }
+
     if (!state.stops || state.stops.length === 0) {
-      state.stops = SAMPLE_STOPS;
-      state.meta.isSample = true;
-      state.meta.currentStopId = "s2";
-      await safeSet('trip:stops', JSON.stringify(state.stops), true);
-      await safeSet('trip:meta', JSON.stringify(state.meta), true);
+      if (readFailed) {
+        // Couldn't confirm whether the database is really empty — show the
+        // sample locally so the page isn't blank, but do NOT save anything,
+        // so we never clobber real trip data over a transient read failure.
+        state.stops = SAMPLE_STOPS;
+        state.meta.isSample = true;
+        showToast('⚠️ Could not reach the database — showing sample only, nothing saved');
+      } else {
+        // Read genuinely succeeded and came back empty — safe to seed for real.
+        state.stops = SAMPLE_STOPS;
+        state.meta.isSample = true;
+        state.meta.currentStopId = "s2";
+        await safeSet('trip:stops', JSON.stringify(state.stops), true);
+        await safeSet('trip:meta', JSON.stringify(state.meta), true);
+      }
     }
     state.stops.sort((a,b) => a.order - b.order);
 
     await Promise.all(state.stops.map(async (s) => {
-      const raw = await safeGet('trip:log:' + s.id, true);
-      if (raw) {
-        try { state.logs[s.id] = JSON.parse(raw); } catch(e){ state.logs[s.id] = { text: '', photos: [] }; }
-      } else {
+      try {
+        const raw = await safeGet('trip:log:' + s.id);
+        state.logs[s.id] = raw ? (JSON.parse(raw)) : { text: '', photos: [] };
+      } catch(e){
+        console.error('could not load log for', s.id, e);
         state.logs[s.id] = { text: '', photos: [] };
       }
     }));
